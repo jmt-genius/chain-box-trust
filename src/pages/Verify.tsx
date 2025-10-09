@@ -6,24 +6,42 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { loadBatches, type Batch } from '@/lib/demoData';
-import { Search, Package, Calendar, MapPin, ExternalLink } from 'lucide-react';
+import { Search, Package } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { QRScanAnimator } from '@/components/QRScanAnimator';
+import { AnimatedTimeline } from '@/components/AnimatedTimeline';
+import { GlassCard } from '@/components/GlassCard';
 
 const Verify = () => {
   const [searchId, setSearchId] = useState('');
   const [batch, setBatch] = useState<Batch | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
 
   const handleSearch = () => {
+    setIsScanning(true);
+    setTimeout(() => {
+      const batches = loadBatches();
+      const found = batches.find(b => b.id === searchId.trim());
+      
+      if (found) {
+        setBatch(found);
+        setNotFound(false);
+      } else {
+        setBatch(null);
+        setNotFound(true);
+      }
+      setIsScanning(false);
+    }, 2500);
+  };
+
+  const handleScanComplete = (batchId: string) => {
+    setSearchId(batchId);
     const batches = loadBatches();
-    const found = batches.find(b => b.id === searchId.trim());
-    
+    const found = batches.find(b => b.id === batchId);
     if (found) {
       setBatch(found);
       setNotFound(false);
-    } else {
-      setBatch(null);
-      setNotFound(true);
     }
   };
 
@@ -31,60 +49,96 @@ const Verify = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8">Verify Batch</h1>
+      <motion.h1 
+        className="text-4xl md:text-5xl font-bold mb-8 bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        Verify Batch
+      </motion.h1>
 
-      {/* Search Form */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Enter Batch ID</CardTitle>
-          <CardDescription>Verify the provenance and history of a batch</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="searchId">Batch ID</Label>
-              <Input
-                id="searchId"
-                placeholder="e.g., CHT-001-ABC"
-                value={searchId}
-                onChange={(e) => setSearchId(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              />
-            </div>
-            <div className="flex items-end">
-              <Button onClick={handleSearch}>
-                <Search className="mr-2 h-4 w-4" />
-                Get Log
-              </Button>
-            </div>
-          </div>
+      <div className="grid gap-8 lg:grid-cols-2">
+        {/* Search Form */}
+        <div className="space-y-6">
+          <GlassCard>
+            <CardHeader>
+              <CardTitle>Enter Batch ID</CardTitle>
+              <CardDescription>Verify the provenance and history of a batch</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4">
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="searchId">Batch ID</Label>
+                  <Input
+                    id="searchId"
+                    placeholder="e.g., CHT-001-ABC"
+                    value={searchId}
+                    onChange={(e) => setSearchId(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button onClick={handleSearch} disabled={isScanning}>
+                    <Search className="mr-2 h-4 w-4" />
+                    {isScanning ? 'Scanning...' : 'Get Log'}
+                  </Button>
+                </div>
+              </div>
 
-          {/* Demo Suggestions */}
-          <div className="mt-4">
-            <p className="text-sm text-muted-foreground mb-2">Try these demo batches:</p>
-            <div className="flex flex-wrap gap-2">
-              {demoSuggestions.map(id => (
-                <Badge
-                  key={id}
-                  variant="outline"
-                  className="cursor-pointer hover:bg-accent"
-                  onClick={() => {
-                    setSearchId(id);
-                    const batches = loadBatches();
-                    const found = batches.find(b => b.id === id);
-                    if (found) {
-                      setBatch(found);
-                      setNotFound(false);
-                    }
-                  }}
-                >
-                  {id}
-                </Badge>
-              ))}
+              {/* Demo Suggestions */}
+              <div className="mt-4">
+                <p className="text-sm text-muted-foreground mb-2">Try these demo batches:</p>
+                <div className="flex flex-wrap gap-2">
+                  {demoSuggestions.map(id => (
+                    <Badge
+                      key={id}
+                      variant="outline"
+                      className="cursor-pointer hover:bg-accent transition-colors"
+                      onClick={() => {
+                        setSearchId(id);
+                        handleSearch();
+                      }}
+                    >
+                      {id}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </GlassCard>
+
+          {/* QR Scanner */}
+          <QRScanAnimator onScanComplete={handleScanComplete} batchId="CHT-001-ABC" />
+        </div>
+
+        {/* Info/Instructions */}
+        <GlassCard>
+          <CardHeader>
+            <CardTitle>How to Verify</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+              <h3 className="font-semibold">Option 1: Manual Entry</h3>
+              <p className="text-sm text-muted-foreground">
+                Enter a batch ID in the search box and click "Get Log" to view its complete provenance timeline.
+              </p>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+
+            <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+              <h3 className="font-semibold">Option 2: Simulate QR Scan</h3>
+              <p className="text-sm text-muted-foreground">
+                Click "Simulate Scan" to experience the QR code scanning animation and automatically load batch data.
+              </p>
+            </div>
+
+            <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+              <p className="text-sm font-medium">
+                💡 Each event is cryptographically signed and includes immutable blockchain references for complete transparency.
+              </p>
+            </div>
+          </CardContent>
+        </GlassCard>
+      </div>
 
       {/* Not Found Message */}
       {notFound && (
@@ -100,10 +154,10 @@ const Verify = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-6"
+          className="space-y-6 mt-8"
         >
           {/* Batch Info */}
-          <Card>
+          <GlassCard>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
@@ -141,10 +195,10 @@ const Verify = () => {
                 </div>
               )}
             </CardContent>
-          </Card>
+          </GlassCard>
 
           {/* Timeline */}
-          <Card>
+          <GlassCard>
             <CardHeader>
               <CardTitle>Supply Chain Timeline</CardTitle>
               <CardDescription>{batch.events.length} events recorded</CardDescription>
@@ -153,62 +207,10 @@ const Verify = () => {
               {batch.events.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">No events logged yet</p>
               ) : (
-                <div className="space-y-6">
-                  {batch.events.map((event, index) => (
-                    <motion.div
-                      key={event.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="relative pl-8 pb-6 border-l-2 border-primary last:border-l-0 last:pb-0"
-                    >
-                      <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-primary border-4 border-background" />
-                      
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <h4 className="font-semibold text-lg">{event.actor}</h4>
-                            <Badge variant="secondary" className="mt-1">{event.role}</Badge>
-                          </div>
-                          <div className="text-right text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {new Date(event.timestamp).toLocaleString()}
-                            </div>
-                          </div>
-                        </div>
-
-                        <p className="text-muted-foreground">{event.note}</p>
-
-                        {event.image && (
-                          <img 
-                            src={event.image} 
-                            alt="Event documentation" 
-                            className="w-48 h-48 object-cover rounded-lg border"
-                            onError={(e) => {
-                              e.currentTarget.src = '/placeholder.svg';
-                            }}
-                          />
-                        )}
-
-                        <div className="space-y-2 p-3 bg-muted rounded-lg text-sm font-mono">
-                          <div>
-                            <span className="text-muted-foreground">Hash: </span>
-                            <span className="text-xs break-all">{event.hash}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground">Ledger: </span>
-                            <span className="text-xs break-all flex-1">{event.ledgerRef}</span>
-                            <ExternalLink className="h-3 w-3 text-primary cursor-pointer" />
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+                <AnimatedTimeline events={batch.events} />
               )}
             </CardContent>
-          </Card>
+          </GlassCard>
         </motion.div>
       )}
     </div>
