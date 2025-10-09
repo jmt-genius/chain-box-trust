@@ -1,73 +1,151 @@
-# Welcome to your Lovable project
+# Boxity - QR Provenance Demo
 
-## Project info
+A production-ready QR-based provenance tracking demo built with React, TypeScript, and TailwindCSS.
 
-**URL**: https://lovable.dev/projects/2f6fa193-b859-47a0-8259-216c1c0e3996
+## 🚀 Quick Start
 
-## How can I edit this code?
+```bash
+# Install dependencies
+npm install
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/2f6fa193-b859-47a0-8259-216c1c0e3996) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Run development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app will be available at `http://localhost:8080`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 📋 Features
 
-**Use GitHub Codespaces**
+- **Home Page**: Hero section with catchy tagline and CTA
+- **Admin Dashboard**: Create batches and generate QR codes
+- **Log Event**: Record supply chain events with actors, roles, and notes
+- **Verify**: View complete batch timeline with cryptographic proofs
+- **Dark/Light Theme**: Toggle with pure black backgrounds in dark mode
+- **Responsive Design**: Mobile-first, accessible UI
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🎯 Demo Batches
 
-## What technologies are used for this project?
+The app comes pre-loaded with three demo batches:
 
-This project is built with:
+1. **CHT-001-ABC** - VitaTabs 10mg (2 events)
+2. **CHT-002-XYZ** - ColdVax (1 event)
+3. **CHT-DEMO** - Generic Demo Product (2 events)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 📖 Usage Guide
 
-## How can I deploy this project?
+### For Judges / Demo
 
-Simply open [Lovable](https://lovable.dev/projects/2f6fa193-b859-47a0-8259-216c1c0e3996) and click on Share -> Publish.
+1. **Home Page** (`/`)
+   - View the hero section
+   - Click "Try it out" to navigate to Admin
 
-## Can I connect a custom domain to my Lovable project?
+2. **Admin** (`/admin`)
+   - Create a new batch or use pre-loaded demo batches
+   - Generate QR codes for batches
+   - Download QR code images
 
-Yes, you can!
+3. **Log Event** (`/log-event`)
+   - Select a batch (e.g., CHT-001-ABC)
+   - Add actor details and event notes
+   - Submit to append to the timeline
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+4. **Verify** (`/verify`)
+   - Enter batch ID: `CHT-001-ABC`
+   - Click "Get Log" to view full timeline
+   - See events with timestamps, images, hashes, and ledger references
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### Theme Toggle
+
+Click the sun/moon icon in the navbar to toggle between light and dark themes. The preference is saved to localStorage.
+
+### Reset Demo Data
+
+To reset to original demo data, open browser console and run:
+
+```javascript
+localStorage.removeItem('boxity-batches');
+```
+
+Then refresh the page.
+
+## 🏗️ Project Structure
+
+```
+src/
+├── components/
+│   ├── ui/           # shadcn/ui components
+│   └── Navbar.tsx    # Main navigation
+├── contexts/
+│   └── ThemeContext.tsx
+├── lib/
+│   ├── demoData.ts   # Demo batches and data management
+│   └── utils.ts      # Utility functions
+├── pages/
+│   ├── Index.tsx     # Home page
+│   ├── Admin.tsx     # Admin dashboard
+│   ├── LogEvent.tsx  # Event logging
+│   └── Verify.tsx    # Batch verification
+└── App.tsx           # Main app with routing
+```
+
+## 🎨 Design System
+
+- **Primary Color**: Blue (#4A9EFF)
+- **Dark Theme**: Pure black backgrounds (#000000)
+- **Components**: shadcn/ui with customized variants
+- **Animations**: Framer Motion for smooth transitions
+
+## 🔐 Features Detail
+
+### QR Code Generation
+
+QR codes are generated using the `qrcode` library and contain the batch ID. Users can download QR codes as PNG images.
+
+### Cryptographic Proof
+
+Each event generates:
+- **Hash**: 64-character SHA256-like identifier
+- **Ledger Reference**: Fake blockchain transaction ID (0x...)
+
+### LocalStorage Persistence
+
+All batch data is stored in localStorage under the key `boxity-batches`. This simulates backend persistence for demo purposes.
+
+## 🌐 Accessibility
+
+- Keyboard navigation supported
+- ARIA labels on interactive elements
+- Responsive mobile-first design
+- High contrast in dark mode
+
+## 📦 Technologies
+
+- **React 18** - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Build tool
+- **TailwindCSS** - Styling
+- **shadcn/ui** - UI components
+- **Framer Motion** - Animations
+- **qrcode** - QR generation
+- **React Router** - Navigation
+
+## 🚢 Production Build
+
+```bash
+npm run build
+```
+
+The optimized production build will be in the `dist/` folder.
+
+## 📝 Notes
+
+- This is a demo application with no backend
+- All data is stored in browser localStorage
+- Images reference `/demo/` folder (placeholder paths)
+- QR codes encode batch IDs as plain text
+
+---
+
+**Lovable Project**: https://lovable.dev/projects/2f6fa193-b859-47a0-8259-216c1c0e3996
+
+Built with ❤️ using React + TypeScript + Vite
