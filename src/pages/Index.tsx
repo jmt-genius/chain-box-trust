@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Package, Scan, ShieldCheck, Sparkles } from 'lucide-react';
 import { Box3D } from '@/components/Box3D';
-import { AnimatedCubes } from '@/components/AnimatedCubes';
+import Cubes from '@/components/Cubes';
 import { GlassCard } from '@/components/GlassCard';
 import { QRScanAnimator } from '@/components/QRScanAnimator';
 import { Walkthrough } from '@/components/Walkthrough';
@@ -92,44 +92,77 @@ const Index = () => {
             </div>
           </motion.div>
 
-          {/* Right: 3D Box & QR Scanner */}
+          {/* Right: Cubes Visualization */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: 'easeOut' }}
-            className="space-y-8"
+            className="flex items-center justify-center"
           >
             {/* Animated Cubes Visualization */}
-            <GlassCard className="h-80 overflow-hidden flex items-center justify-center" hover={false}>
-              <AnimatedCubes />
-            </GlassCard>
-
-            {/* QR Scan Simulator */}
-            <QRScanAnimator onScanComplete={handleScanComplete} />
-
-            {/* Timeline Preview */}
-            {showTimeline && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="p-4 bg-card/50 backdrop-blur-sm border border-primary/30 rounded-lg"
-              >
-                <p className="text-sm text-muted-foreground mb-2">Preview Timeline:</p>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
-                    <span>SwiftCargo - Dispatched</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
-                    <span>MegaMart - Verified intact</span>
-                  </div>
-                </div>
-              </motion.div>
-            )}
+            <div style={{ height: '300px', position: 'relative', width: '100%', maxWidth: '500px' }}>
+              <Cubes 
+                gridSize={8}
+                maxAngle={60}
+                radius={4}
+                borderStyle="2px dashed #5227FF"
+                faceColor="#1a1a2e"
+                rippleColor="#ff6b6b"
+                rippleSpeed={1.5}
+                autoAnimate={true}
+                rippleOnClick={true}
+              />
+            </div>
           </motion.div>
         </div>
+      </section>
+
+      {/* QR Scan Simulator Section */}
+      <section className="container mx-auto px-4 py-12">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+          className="flex flex-col items-center space-y-8"
+        >
+          <div className="text-center space-y-4">
+            <h2 className="text-3xl md:text-4xl font-bold">
+              <span className="bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">
+                Try It Now
+              </span>
+            </h2>
+            <p className="text-muted-foreground max-w-2xl">
+              Experience our QR scanning technology with this interactive demo
+            </p>
+          </div>
+          
+          {/* QR Scan Simulator */}
+          <div className="w-full max-w-md">
+            <QRScanAnimator onScanComplete={handleScanComplete} />
+          </div>
+
+          {/* Timeline Preview */}
+          {showTimeline && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="w-full max-w-md p-4 bg-card/50 backdrop-blur-sm border border-primary/30 rounded-lg"
+            >
+              <p className="text-sm text-muted-foreground mb-2">Preview Timeline:</p>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                  <span>SwiftCargo - Dispatched</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                  <span>MegaMart - Verified intact</span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </motion.div>
       </section>
 
       {/* Process Section with 3D States */}
