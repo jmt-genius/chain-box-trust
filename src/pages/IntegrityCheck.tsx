@@ -17,6 +17,7 @@ export default function IntegrityCheck() {
   const [afterImage, setAfterImage] = useState<string | null>(null);
   const [differences, setDifferences] = useState<DifferenceResult[] | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const { toast } = useToast();
 
   const handleImageUpload = (
@@ -35,6 +36,21 @@ export default function IntegrityCheck() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const loadDemoMode = () => {
+    setIsDemoMode(true);
+    // Demo images - using placeholder data URIs
+    const demoBeforeImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%2320184f'/%3E%3Ctext x='50%25' y='50%25' font-size='20' fill='white' text-anchor='middle' dy='.3em'%3ESealed Box - Pristine%3C/text%3E%3Crect x='50' y='50' width='300' height='300' fill='none' stroke='%238b5cf6' stroke-width='3' rx='10'/%3E%3C/svg%3E";
+    const demoAfterImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%2320184f'/%3E%3Ctext x='50%25' y='50%25' font-size='20' fill='white' text-anchor='middle' dy='.3em'%3EBox - With Damage%3C/text%3E%3Crect x='50' y='50' width='300' height='300' fill='none' stroke='%23ef4444' stroke-width='3' rx='10'/%3E%3Cpolygon points='300,100 350,80 320,120' fill='%23ef4444' opacity='0.7'/%3E%3Cline x1='60' y1='200' x2='150' y2='210' stroke='%23f97316' stroke-width='2'/%3E%3C/svg%3E";
+    
+    setBeforeImage(demoBeforeImage);
+    setAfterImage(demoAfterImage);
+
+    toast({
+      title: "Demo mode loaded",
+      description: "Sample images loaded. Click 'Check Integrity' to analyze.",
+    });
   };
 
   const checkIntegrity = () => {
@@ -90,9 +106,16 @@ export default function IntegrityCheck() {
           <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
             Box Integrity Checker
           </h1>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-lg mb-6">
             Upload before and after images to detect tampering and damage
           </p>
+          <Button
+            onClick={loadDemoMode}
+            variant="outline"
+            className="border-primary/50 hover:bg-primary/10"
+          >
+            Load Demo Mode
+          </Button>
         </motion.div>
 
         <div className="grid md:grid-cols-2 gap-8 mb-12">

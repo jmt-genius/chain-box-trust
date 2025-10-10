@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Package, Scan, ShieldCheck, Sparkles } from 'lucide-react';
 import { Box3D } from '@/components/Box3D';
+import { AnimatedCubes } from '@/components/AnimatedCubes';
 import { GlassCard } from '@/components/GlassCard';
 import { QRScanAnimator } from '@/components/QRScanAnimator';
 import { Walkthrough } from '@/components/Walkthrough';
@@ -98,9 +99,9 @@ const Index = () => {
             transition={{ duration: 0.8, ease: 'easeOut' }}
             className="space-y-8"
           >
-            {/* 3D Box Visualization */}
-            <GlassCard className="h-80 overflow-hidden" hover={false}>
-              <Box3D state="sealed" autoRotate />
+            {/* Animated Cubes Visualization */}
+            <GlassCard className="h-80 overflow-hidden flex items-center justify-center" hover={false}>
+              <AnimatedCubes />
             </GlassCard>
 
             {/* QR Scan Simulator */}
