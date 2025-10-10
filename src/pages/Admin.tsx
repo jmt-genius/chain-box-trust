@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { Walkthrough } from '@/components/Walkthrough';
 import { loadBatches, saveBatches, type Batch } from '@/lib/demoData';
 import QRCode from 'qrcode';
 import { Download } from 'lucide-react';
@@ -78,13 +80,29 @@ const Admin = () => {
     link.click();
   };
 
+  const walkthroughSteps = [
+    {
+      target: "create-batch-form",
+      title: "Create Batch",
+      description: "Fill in product details and generate a unique batch ID with QR code",
+      position: "right" as const,
+    },
+    {
+      target: "batch-table",
+      title: "View Batches",
+      description: "All created batches are listed here with their details",
+      position: "top" as const,
+    },
+  ];
+
   return (
     <div className="container mx-auto px-4 py-8">
+      <Walkthrough steps={walkthroughSteps} storageKey="admin-walkthrough" />
       <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
 
       <div className="grid gap-8 md:grid-cols-2">
         {/* Create Batch Form */}
-        <Card>
+        <Card id="create-batch-form">
           <CardHeader>
             <CardTitle>Create New Batch</CardTitle>
             <CardDescription>Register a new product batch in the system</CardDescription>
@@ -171,7 +189,7 @@ const Admin = () => {
       </div>
 
       {/* Batches Table */}
-      <Card className="mt-8">
+      <Card className="mt-8" id="batch-table">
         <CardHeader>
           <CardTitle>All Batches</CardTitle>
           <CardDescription>List of all registered batches</CardDescription>

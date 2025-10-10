@@ -1,13 +1,14 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Walkthrough } from '@/components/Walkthrough';
 import { loadBatches, type Batch } from '@/lib/demoData';
 import { Search, Package } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { QRScanAnimator } from '@/components/QRScanAnimator';
 import { AnimatedTimeline } from '@/components/AnimatedTimeline';
 import { GlassCard } from '@/components/GlassCard';
@@ -47,8 +48,24 @@ const Verify = () => {
 
   const demoSuggestions = ['CHT-001-ABC', 'CHT-002-XYZ', 'CHT-DEMO'];
 
+  const walkthroughSteps = [
+    {
+      target: "batch-id-input",
+      title: "Enter Batch ID",
+      description: "Type or paste a batch ID here to verify its journey through the supply chain",
+      position: "bottom" as const,
+    },
+    {
+      target: "verify-btn",
+      title: "Verify Batch",
+      description: "Click to retrieve and display the complete timeline for this batch",
+      position: "top" as const,
+    },
+  ];
+
   return (
     <div className="container mx-auto px-4 py-8">
+      <Walkthrough steps={walkthroughSteps} storageKey="verify-walkthrough" />
       <motion.h1 
         className="text-4xl md:text-5xl font-bold mb-8 bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent"
         initial={{ opacity: 0, y: -20 }}
@@ -70,7 +87,7 @@ const Verify = () => {
                 <div className="flex-1 space-y-2">
                   <Label htmlFor="searchId">Batch ID</Label>
                   <Input
-                    id="searchId"
+                    id="batch-id-input"
                     placeholder="e.g., CHT-001-ABC"
                     value={searchId}
                     onChange={(e) => setSearchId(e.target.value)}
@@ -78,7 +95,7 @@ const Verify = () => {
                   />
                 </div>
                 <div className="flex items-end">
-                  <Button onClick={handleSearch} disabled={isScanning}>
+                  <Button id="verify-btn" onClick={handleSearch} disabled={isScanning}>
                     <Search className="mr-2 h-4 w-4" />
                     {isScanning ? 'Scanning...' : 'Get Log'}
                   </Button>

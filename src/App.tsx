@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Admin from "./pages/Admin";
 import LogEvent from "./pages/LogEvent";
 import Verify from "./pages/Verify";
+import IntegrityCheck from "./pages/IntegrityCheck";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/log-event" element={<LogEvent />} />
             <Route path="/verify" element={<Verify />} />
+            <Route path="/integrity-check" element={<IntegrityCheck />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

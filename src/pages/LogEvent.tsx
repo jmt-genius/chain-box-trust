@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dialog";
 
 import { useToast } from "@/hooks/use-toast";
+import { Walkthrough } from "@/components/Walkthrough";
 
 import {
   loadBatches,
@@ -237,8 +238,24 @@ export default function LogEvent(): JSX.Element {
     }
   };
 
+  const walkthroughSteps = [
+    {
+      target: "scan-qr-btn",
+      title: "Scan QR Code",
+      description: "Use your camera to scan a batch QR code or enter the batch ID manually",
+      position: "bottom" as const,
+    },
+    {
+      target: "log-event-form",
+      title: "Log Event",
+      description: "Fill in event details and attach an image to record this step in the supply chain",
+      position: "right" as const,
+    },
+  ];
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <Walkthrough steps={walkthroughSteps} storageKey="log-event-walkthrough" />
       <motion.h1
         className="text-3xl md:text-4xl font-bold mb-6 tracking-tight"
         initial={{ opacity: 0, y: 8 }}
@@ -254,7 +271,7 @@ export default function LogEvent(): JSX.Element {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden" id="log-event-form">
             <CardHeader className="pb-3">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
@@ -265,6 +282,7 @@ export default function LogEvent(): JSX.Element {
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
+                    id="scan-qr-btn"
                     variant="secondary"
                     size="sm"
                     onClick={() => setScanOpen(true)}

@@ -6,11 +6,13 @@ interface GlassCardProps {
   children: ReactNode;
   className?: string;
   hover?: boolean;
+  id?: string;
 }
 
-export const GlassCard = ({ children, className = '', hover = true }: GlassCardProps) => {
+export const GlassCard = ({ children, className = '', hover = true, id }: GlassCardProps) => {
   return (
     <motion.div
+      id={id}
       className={cn(
         'relative rounded-xl border border-border/50 bg-card/30 backdrop-blur-md shadow-lg',
         hover && 'transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/50',

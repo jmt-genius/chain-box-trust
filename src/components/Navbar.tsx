@@ -15,7 +15,8 @@ export const Navbar = () => {
     { path: '/', label: 'Home' },
     { path: '/admin', label: 'Admin' },
     { path: '/log-event', label: 'Log Event' },
-    { path: '/verify', label: 'Verify' }
+    { path: '/verify', label: 'Verify' },
+    { path: '/integrity-check', label: 'Integrity Check' }
   ];
 
   return (

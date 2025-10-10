@@ -5,6 +5,7 @@ import { Package, Scan, ShieldCheck, Sparkles } from 'lucide-react';
 import { Box3D } from '@/components/Box3D';
 import { GlassCard } from '@/components/GlassCard';
 import { QRScanAnimator } from '@/components/QRScanAnimator';
+import { Walkthrough } from '@/components/Walkthrough';
 import { useState } from 'react';
 
 const Index = () => {
@@ -16,8 +17,24 @@ const Index = () => {
     setTimeout(() => setShowTimeline(false), 5000);
   };
 
+  const walkthroughSteps = [
+    {
+      target: "try-it-out-btn",
+      title: "Try It Out",
+      description: "Click here to start creating your first batch and generate QR codes",
+      position: "bottom" as const,
+    },
+    {
+      target: "simulate-scan-btn",
+      title: "Simulate QR Scan",
+      description: "Experience the scanning animation and see how batch verification works",
+      position: "top" as const,
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
+      <Walkthrough steps={walkthroughSteps} storageKey="home-walkthrough" />
       {/* Hero Section with 3D Box */}
       <section className="container mx-auto px-4 py-12 md:py-20">
         <div className="grid gap-12 lg:grid-cols-2 items-center">
@@ -55,6 +72,7 @@ const Index = () => {
 
             <div className="flex flex-col sm:flex-row gap-4">
               <Button 
+                id="try-it-out-btn"
                 size="lg" 
                 className="text-lg px-8 py-6 bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90 shadow-lg shadow-primary/25"
                 onClick={() => navigate('/admin')}
@@ -62,6 +80,7 @@ const Index = () => {
                 Try it out
               </Button>
               <Button 
+                id="simulate-scan-btn"
                 size="lg" 
                 variant="outline"
                 className="text-lg px-8 py-6"
