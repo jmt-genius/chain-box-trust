@@ -1,151 +1,208 @@
-# Boxity - QR Provenance Demo
+# Boxity – QR Provenance Demo
 
-A production-ready QR-based provenance tracking demo built with React, TypeScript, and TailwindCSS.
+A production-ready demo for **QR-based supply chain provenance tracking**, built with **Next.js, TypeScript, TailwindCSS, and shadcn**.  
+The project simulates end-to-end blockchain-backed logging and verification of product batches without requiring IoT hardware.
 
-## 🚀 Quick Start
+---
 
+## Live Deployment
+
+- **Frontend App:** [https://chain-box-trust.vercel.app/](https://chain-box-trust.vercel.app/)
+
+---
+
+## Table of Contents
+
+1. [Project Overview](#project-overview)  
+2. [Features](#features)  
+3. [Demo Batches](#demo-batches)  
+4. [Usage Guide](#usage-guide)  
+5. [Design System](#design-system)  
+6. [Architecture & Project Structure](#architecture--project-structure)  
+7. [Technology Stack](#technology-stack)  
+8. [Local Quickstart](#local-quickstart)  
+9. [Production Build](#production-build)  
+10. [Notes](#notes)
+
+---
+
+## Project Overview
+
+Boxity provides a simple **blockchain-style provenance system** where each product batch is assigned a **unique QR identity**.  
+Each custody transfer is logged with cryptographic hashes and simulated blockchain ledger references.
+
+The demo showcases:
+
+- **QR generation & scanning**  
+- **Camera-based auto-fill for event logging**  
+- **Immutable event logging per batch**  
+- **Batch verification with transparent timelines**
+
+---
+
+## Features
+
+| Feature                   | Description                                                                 |
+| :------------------------ | :-------------------------------------------------------------------------- |
+| **Home Page**             | Hero section with tagline and call-to-action                                |
+| **Admin Dashboard**       | Create product batches, generate and download QR codes                      |
+| **QR Scanning**           | Camera-based scanning with auto-submit and fallback to file upload           |
+| **Event Logging**         | Record custody events with actor, role, notes, and images                   |
+| **Verify Timeline**       | View all custody events with timestamps, hashes, and ledger refs             |
+| **Light/Dark Theme**      | Pure black dark mode with persistent preference                             |
+| **Responsive Design**     | Fully responsive for desktop, tablet, and mobile                            |
+| **Animations**            | Smooth interactions using Framer Motion                                     |
+
+---
+
+## Demo Batches
+
+Preloaded data is included for demo purposes:
+
+| Batch ID      | Product           | Events |
+| :------------ | :---------------- | :----- |
+| `CHT-001-ABC` | VitaTabs 10mg     | 2      |
+| `CHT-002-XYZ` | ColdVax           | 1      |
+| `CHT-DEMO`    | Generic Demo Item | 2      |
+
+---
+
+## Usage Guide
+
+### Home (`/`)
+- View the hero section.  
+- Click **“Try it out”** to navigate to Admin.
+
+### Admin (`/admin`)
+- Create or manage demo batches.  
+- Generate QR codes (PNG) for each batch.
+
+### Log Event (`/log-event`)
+- Select a batch or scan a QR.  
+- Add actor details, roles, and notes.  
+- Events are logged with hash + ledger reference.
+
+### Verify (`/verify`)
+- Enter a Batch ID (e.g., `CHT-001-ABC`).  
+- Retrieve the entire event timeline with cryptographic proofs.
+
+### Theme Toggle
+- Switch between **light** and **dark** themes.  
+- Preference is saved in localStorage.
+
+### Reset Demo Data
+Run this in the browser console:
+```js
+localStorage.removeItem("boxity-batches");
+```
+Then refresh the page.
+
+---
+
+## Design System
+
+- **Primary Color:** `#4A9EFF` (blue)  
+- **Dark Mode:** Pure black (`#000000`) backgrounds  
+- **UI Components:** shadcn/ui + TailwindCSS  
+- **Animations:** Framer Motion for smooth transitions
+
+---
+
+## Architecture & Project Structure
+
+### Data Model
+Each event generates:
+- **Hash:** Pseudo SHA-256 hash (64 chars)  
+- **Ledger Reference:** Simulated blockchain transaction ID (`0x...`)
+
+Data is persisted in browser **localStorage** (`boxity-batches`).
+
+### Project Structure
+```
+├── .gitignore
+├── README.md
+├── bun.lockb
+├── components.json
+├── eslint.config.js
+├── index.html
+├── package-lock.json
+├── package.json
+├── postcss.config.js
+├── public
+│   ├── favicon.ico
+│   ├── placeholder.svg
+│   └── robots.txt
+├── src
+│   ├── App.css
+│   ├── App.tsx
+│   ├── components
+│   │   ├── AnimatedTimeline.tsx
+│   │   ├── Box3D.tsx
+│   │   ├── GlassCard.tsx
+│   │   ├── Navbar.tsx
+│   │   ├── QRScanAnimator.tsx
+│   │   ├── QRScanner.tsx
+│   │   └── ui/ [...shadcn components]
+│   ├── contexts/ThemeContext.tsx
+│   ├── hooks/ [...custom hooks]
+│   ├── lib/ [demoData.ts, utils.ts]
+│   ├── pages/ [Index, Admin, LogEvent, Verify, NotFound]
+│   └── main.tsx
+├── tailwind.config.ts
+├── tsconfig.json
+├── vite.config.ts
+```
+
+---
+
+## Technology Stack
+
+| Layer          | Technology                                  |
+| :------------- | :------------------------------------------ |
+| **Framework**  | React 18 + Vite                             |
+| **Language**   | TypeScript                                  |
+| **Styling**    | TailwindCSS + shadcn/ui                     |
+| **Animations** | Framer Motion                               |
+| **QR**         | `qrcode` + `html5-qrcode`                   |
+| **State**      | LocalStorage-based persistence              |
+| **Routing**    | React Router                                |
+
+---
+
+## Local Quickstart
+
+### Prerequisites
+- Node.js v18+  
+- npm v9+
+
+### Run Locally
 ```bash
 # Install dependencies
 npm install
 
-# Run development server
+# Start dev server
 npm run dev
 ```
 
-The app will be available at `http://localhost:8080`
+Visit [http://localhost:8080](http://localhost:8080)
 
-## 📋 Features
+---
 
-- **Home Page**: Hero section with catchy tagline and CTA
-- **Admin Dashboard**: Create batches and generate QR codes
-- **Log Event**: Record supply chain events with actors, roles, and notes
-- **Verify**: View complete batch timeline with cryptographic proofs
-- **Dark/Light Theme**: Toggle with pure black backgrounds in dark mode
-- **Responsive Design**: Mobile-first, accessible UI
-
-## 🎯 Demo Batches
-
-The app comes pre-loaded with three demo batches:
-
-1. **CHT-001-ABC** - VitaTabs 10mg (2 events)
-2. **CHT-002-XYZ** - ColdVax (1 event)
-3. **CHT-DEMO** - Generic Demo Product (2 events)
-
-## 📖 Usage Guide
-
-### For Judges / Demo
-
-1. **Home Page** (`/`)
-   - View the hero section
-   - Click "Try it out" to navigate to Admin
-
-2. **Admin** (`/admin`)
-   - Create a new batch or use pre-loaded demo batches
-   - Generate QR codes for batches
-   - Download QR code images
-
-3. **Log Event** (`/log-event`)
-   - Select a batch (e.g., CHT-001-ABC)
-   - Add actor details and event notes
-   - Submit to append to the timeline
-
-4. **Verify** (`/verify`)
-   - Enter batch ID: `CHT-001-ABC`
-   - Click "Get Log" to view full timeline
-   - See events with timestamps, images, hashes, and ledger references
-
-### Theme Toggle
-
-Click the sun/moon icon in the navbar to toggle between light and dark themes. The preference is saved to localStorage.
-
-### Reset Demo Data
-
-To reset to original demo data, open browser console and run:
-
-```javascript
-localStorage.removeItem('boxity-batches');
-```
-
-Then refresh the page.
-
-## 🏗️ Project Structure
-
-```
-src/
-├── components/
-│   ├── ui/           # shadcn/ui components
-│   └── Navbar.tsx    # Main navigation
-├── contexts/
-│   └── ThemeContext.tsx
-├── lib/
-│   ├── demoData.ts   # Demo batches and data management
-│   └── utils.ts      # Utility functions
-├── pages/
-│   ├── Index.tsx     # Home page
-│   ├── Admin.tsx     # Admin dashboard
-│   ├── LogEvent.tsx  # Event logging
-│   └── Verify.tsx    # Batch verification
-└── App.tsx           # Main app with routing
-```
-
-## 🎨 Design System
-
-- **Primary Color**: Blue (#4A9EFF)
-- **Dark Theme**: Pure black backgrounds (#000000)
-- **Components**: shadcn/ui with customized variants
-- **Animations**: Framer Motion for smooth transitions
-
-## 🔐 Features Detail
-
-### QR Code Generation
-
-QR codes are generated using the `qrcode` library and contain the batch ID. Users can download QR codes as PNG images.
-
-### Cryptographic Proof
-
-Each event generates:
-- **Hash**: 64-character SHA256-like identifier
-- **Ledger Reference**: Fake blockchain transaction ID (0x...)
-
-### LocalStorage Persistence
-
-All batch data is stored in localStorage under the key `boxity-batches`. This simulates backend persistence for demo purposes.
-
-## 🌐 Accessibility
-
-- Keyboard navigation supported
-- ARIA labels on interactive elements
-- Responsive mobile-first design
-- High contrast in dark mode
-
-## 📦 Technologies
-
-- **React 18** - UI framework
-- **TypeScript** - Type safety
-- **Vite** - Build tool
-- **TailwindCSS** - Styling
-- **shadcn/ui** - UI components
-- **Framer Motion** - Animations
-- **qrcode** - QR generation
-- **React Router** - Navigation
-
-## 🚢 Production Build
+## Production Build
 
 ```bash
 npm run build
 ```
 
-The optimized production build will be in the `dist/` folder.
-
-## 📝 Notes
-
-- This is a demo application with no backend
-- All data is stored in browser localStorage
-- Images reference `/demo/` folder (placeholder paths)
-- QR codes encode batch IDs as plain text
+The optimized output is generated in `/dist`.
 
 ---
 
-**Lovable Project**: https://lovable.dev/projects/2f6fa193-b859-47a0-8259-216c1c0e3996
+## Notes
 
-Built with ❤️ using React + TypeScript + Vite
+- Demo app for now;  
+- Data persistence is simulated via browser `localStorage`.  
+- Images reference `/demo/` folder (placeholders).  
+- QR codes encode batch metadata in JSON.
+
+---
