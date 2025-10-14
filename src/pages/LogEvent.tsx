@@ -53,6 +53,7 @@ import {
 } from "@/lib/demoData";
 
 import { web3Service, type Batch as ContractBatch, type BatchEvent as ContractBatchEvent } from "@/lib/web3";
+import ClickSpark from "@/components/ClickSpark";
 import QRScanner from "@/components/QRScanner";
 import QRCode from "qrcode";
 
@@ -372,8 +373,15 @@ export default function LogEvent(): JSX.Element {
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <Walkthrough steps={walkthroughSteps} storageKey="log-event-walkthrough" />
+    <ClickSpark
+      sparkColor='#fff'
+      sparkSize={10}
+      sparkRadius={15}
+      sparkCount={8}
+      duration={400}
+    >
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <Walkthrough steps={walkthroughSteps} storageKey="log-event-walkthrough" />
       <div className="flex justify-between items-center mb-6">
         <motion.h1
           className="text-3xl md:text-4xl font-bold tracking-tight"
@@ -721,6 +729,7 @@ export default function LogEvent(): JSX.Element {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </ClickSpark>
   );
 }

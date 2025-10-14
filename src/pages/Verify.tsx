@@ -14,6 +14,7 @@ import { Search, Package, Loader2, Shield, Database } from 'lucide-react';
 import { QRScanAnimator } from '@/components/QRScanAnimator';
 import { AnimatedTimeline } from '@/components/AnimatedTimeline';
 import { GlassCard } from '@/components/GlassCard';
+import ClickSpark from '@/components/ClickSpark';
 
 // Component to display contract batch events
 const ContractBatchTimeline = ({ batchId }: { batchId: string }) => {
@@ -185,8 +186,15 @@ const Verify = () => {
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Walkthrough steps={walkthroughSteps} storageKey="verify-walkthrough" />
+    <ClickSpark
+      sparkColor='#fff'
+      sparkSize={10}
+      sparkRadius={15}
+      sparkCount={8}
+      duration={400}
+    >
+      <div className="container mx-auto px-4 py-8">
+        <Walkthrough steps={walkthroughSteps} storageKey="verify-walkthrough" />
       <div className="flex justify-between items-center mb-8">
         <motion.h1 
           className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent"
@@ -399,7 +407,8 @@ const Verify = () => {
           </GlassCard>
         </motion.div>
       )}
-    </div>
+      </div>
+    </ClickSpark>
   );
 };
 

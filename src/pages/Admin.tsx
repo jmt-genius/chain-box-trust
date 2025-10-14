@@ -12,6 +12,7 @@ import { Walkthrough } from '@/components/Walkthrough';
 import { WalletConnect } from '@/components/WalletConnect';
 import { loadBatches, saveBatches, type Batch as DemoBatch } from '@/lib/demoData';
 import { web3Service, type Batch as ContractBatch } from '@/lib/web3';
+import ClickSpark from '@/components/ClickSpark';
 import QRCode from 'qrcode';
 import { Download, Loader2 } from 'lucide-react';
 
@@ -168,8 +169,15 @@ const Admin = () => {
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Walkthrough steps={walkthroughSteps} storageKey="admin-walkthrough" />
+    <ClickSpark
+      sparkColor='#fff'
+      sparkSize={10}
+      sparkRadius={15}
+      sparkCount={8}
+      duration={400}
+    >
+      <div className="container mx-auto px-4 py-8">
+        <Walkthrough steps={walkthroughSteps} storageKey="admin-walkthrough" />
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-bold">Admin Dashboard</h1>
         <WalletConnect onAddressChange={setConnectedAddress} />
@@ -399,7 +407,8 @@ const Admin = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </ClickSpark>
   );
 };
 

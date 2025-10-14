@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, AlertTriangle, CheckCircle } from "lucide-react";
 import { Box3D } from "@/components/Box3D";
 import { useToast } from "@/hooks/use-toast";
+import ClickSpark from "@/components/ClickSpark";
 
 interface DifferenceResult {
   location: string;
@@ -162,8 +163,15 @@ export default function IntegrityCheck() {
   };
 
   return (
-    <div className="min-h-screen bg-background pt-20 pb-12 px-4">
-      <div className="container mx-auto max-w-7xl">
+    <ClickSpark
+      sparkColor='#fff'
+      sparkSize={10}
+      sparkRadius={15}
+      sparkCount={8}
+      duration={400}
+    >
+      <div className="min-h-screen bg-background pt-20 pb-12 px-4">
+        <div className="container mx-auto max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -336,7 +344,8 @@ export default function IntegrityCheck() {
             </GlassCard>
           </motion.div>
         )}
+        </div>
       </div>
-    </div>
+    </ClickSpark>
   );
 }
