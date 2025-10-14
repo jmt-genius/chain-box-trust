@@ -85,6 +85,33 @@ export default function LogEvent(): JSX.Element {
   const [qrPngUrl, setQrPngUrl] = useState<string>("");
   const [justScanned, setJustScanned] = useState<boolean>(false);
   const [isLogging, setIsLogging] = useState<boolean>(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  const JWT = import.meta.env.VITE_PINATA_JWT;
+
+  const handlePinataUpload = async (file: File): Promise<string> => {
+    setIsUploadingImage(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("network", "public");
+    try {
+      const request = await fetch("https://uploads.pinata.cloud/v3/files", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${JWT}`,
+        },
+        body: formData,
+      });
+      const response = await request.json();
+      if (response.data?.cid) {
+        return `https://ipfs.io/ipfs/${response.data.cid}`;
+      } else {
+        throw new Error("No CID returned from Pinata.");
+      }
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
 
   useEffect(() => {
     setDemoBatches(loadBatches());
@@ -259,10 +286,20 @@ export default function LogEvent(): JSX.Element {
     setScanOpen(false);
     setCameraError("");
 
+    // Check if it's an image URL first
+    if (decodedText.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+      setImage(decodedText);
+      toast({
+        title: "Image URL Scanned",
+        description: "Image URL has been set from QR code",
+      });
+      return;
+    }
+
     // reject plain URLs (non-supply QR)
     if (/^https?:\/\//i.test(decodedText)) {
       toast({
-        title: "QR isn’t a supply payload",
+        title: "QR isn't a supply payload",
         description:
           "You scanned a regular URL. Use a QR with batchId — try the generated test QR.",
         variant: "destructive",
@@ -568,12 +605,35 @@ export default function LogEvent(): JSX.Element {
 
               <div className="space-y-2">
                 <Label htmlFor="image">Image URL (Optional)</Label>
-                <Input
-                  id="image"
-                  placeholder="/demo/image.jpg"
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                />
+                <div className="flex gap-2 items-center">
+                  <Input
+                    id="image"
+                    placeholder="/demo/image.jpg or IPFS url"
+                    value={image}
+                    onChange={(e) => setImage(e.target.value)}
+                    style={{ flex: 1 }}
+                    disabled={isUploadingImage}
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={isUploadingImage}
+                    style={{ width: 140, background: "white" }}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        try {
+                          const url = await handlePinataUpload(file);
+                          setImage(url);
+                          toast({ title: "Upload Success", description: "Image uploaded to IPFS." });
+                        } catch {
+                          toast({ title: "Upload Error", description: "Failed to upload image to Pinata", variant: "destructive" });
+                        }
+                      }
+                    }}
+                  />
+                </div>
+                {isUploadingImage && <span className="text-xs text-blue-500">Uploading image...</span>}
                 {image ? (
                   <div className="rounded-xl border p-2">
                     <img

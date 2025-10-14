@@ -29,7 +29,33 @@ const Admin = () => {
   const [currentQR, setCurrentQR] = useState({ id: '', dataUrl: '' });
   const [isCreating, setIsCreating] = useState(false);
   const [isLoadingBatches, setIsLoadingBatches] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
+const JWT = import.meta.env.VITE_PINATA_JWT;
+
+const handlePinataUpload = async (file: File): Promise<string> => {
+  setIsUploadingImage(true);
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("network", "public");
+  try {
+    const request = await fetch("https://uploads.pinata.cloud/v3/files", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${JWT}`,
+      },
+      body: formData,
+    });
+    const response = await request.json();
+    if (response.data?.cid) {
+      return `https://ipfs.io/ipfs/${response.data.cid}`;
+    } else {
+      throw new Error("No CID returned from Pinata.");
+    }
+  } finally {
+    setIsUploadingImage(false);
+  }
+  };
   // Load contract batches when connected
   useEffect(() => {
     if (connectedAddress) {
@@ -231,14 +257,40 @@ const Admin = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="baselineImage">Baseline Image URL (Optional)</Label>
-              <Input
-                id="baselineImage"
-                placeholder="/demo/product.jpg"
-                value={baselineImage}
-                onChange={(e) => setBaselineImage(e.target.value)}
-              />
-            </div>
+  <Label htmlFor="baselineImage">Baseline Image URL (or upload)</Label>
+  <div className="flex gap-2 items-center">
+    <Input
+      id="baselineImage"
+      placeholder="/demo/product.jpg or IPFS url"
+      value={baselineImage}
+      onChange={(e) => setBaselineImage(e.target.value)}
+      style={{ flex: 1 }}
+      disabled={isUploadingImage}
+    />
+    <input
+      type="file"
+      accept="image/*"
+      disabled={isUploadingImage}
+      style={{ width: 140, background: "white" }}
+      onChange={async (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          try {
+            const url = await handlePinataUpload(file);
+            setBaselineImage(url);
+            toast({ title: "Upload Success", description: "Image uploaded to IPFS." });
+          } catch {
+            toast({ title: "Upload Error", description: "Failed to upload image to Pinata", variant: "destructive" });
+          }
+        }
+      }}
+    />
+  </div>
+  {isUploadingImage && <span className="text-xs text-blue-500">Uploading image...</span>}
+  {baselineImage && (
+    <img src={baselineImage} alt="baseline preview" className="w-28 h-28 rounded border mt-2 object-cover" onError={e => e.currentTarget.style.display = 'none'} />
+  )}
+</div>
 
             <Button 
               onClick={handleCreateBatch} 
