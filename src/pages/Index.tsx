@@ -1,128 +1,288 @@
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Package, Scan, ShieldCheck, Sparkles } from 'lucide-react';
-import { Box3D } from '@/components/Box3D';
-import Cubes from '@/components/Cubes';
-import { GlassCard } from '@/components/GlassCard';
-import { QRScanAnimator } from '@/components/QRScanAnimator';
-import { Walkthrough } from '@/components/Walkthrough';
-import { useState } from 'react';
+// src/pages/Index.tsx
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { motion, useMotionValue, useTransform } from "framer-motion";
+import {
+  Package,
+  Scan,
+  ShieldCheck,
+  Sparkles,
+  ArrowRight,
+  Zap,
+  Globe,
+  Lock,
+  Star,
+} from "lucide-react";
+import { Box3D } from "@/components/Box3D";
+import Cubes from "@/components/Cubes";
+import { GlassCard } from "@/components/GlassCard";
+import { QRScanAnimator } from "@/components/QRScanAnimator";
+import { Walkthrough } from "@/components/Walkthrough";
+import ParticleField from "@/components/ParticleField";
+import FloatingElements from "@/components/FloatingElements";
+import GradientBackground from "@/components/GradientBackground";
+import AnimatedText, { TypewriterText } from "@/components/AnimatedText";
+import InteractiveCard from "@/components/InteractiveCard";
+import { useState, useRef } from "react";
+
+/**
+ * Final enhanced Index page
+ * - Uses framer-motion for tilt effect (no extra dependency)
+ * - Compact hero copy, strong CTA
+ * - Right visual tile preserved (Cubes)
+ * - Rest of sections intact and responsive
+ */
 
 const Index = () => {
   const navigate = useNavigate();
   const [showTimeline, setShowTimeline] = useState(false);
 
+  // small interactive tilt values (framer-motion) — no external tilt lib needed
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const rotateY = useTransform(mouseX, [-100, 100], [12, -12]);
+  const rotateX = useTransform(mouseY, [-100, 100], [-8, 8]);
+  const shadowX = useTransform(mouseX, [-100, 100], [-40, 40]);
+  const shadowY = useTransform(mouseY, [-100, 100], [-30, 30]);
+
+  const handleMove = (e: React.MouseEvent) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - (rect.left + rect.width / 2);
+    const y = e.clientY - (rect.top + rect.height / 2);
+    // normalize approx to -100..100
+    const nx = Math.max(-120, Math.min(120, (x / (rect.width / 2)) * 100));
+    const ny = Math.max(-120, Math.min(120, (y / (rect.height / 2)) * 100));
+    mouseX.set(nx);
+    mouseY.set(ny);
+  };
+
+  const handleLeave = () => {
+    mouseX.set(0);
+    mouseY.set(0);
+  };
+
   const handleScanComplete = () => {
     setShowTimeline(true);
-    setTimeout(() => setShowTimeline(false), 5000);
+    setTimeout(() => setShowTimeline(false), 4500);
   };
 
   const walkthroughSteps = [
     {
       target: "try-it-out-btn",
       title: "Try It Out",
-      description: "Click here to start creating your first batch and generate QR codes",
+      description:
+        "Create a batch, generate a QR and experience verification end-to-end",
       position: "bottom" as const,
     },
     {
       target: "simulate-scan-btn",
       title: "Simulate QR Scan",
-      description: "Experience the scanning animation and see how batch verification works",
+      description: "Experience the scanning animation and see timeline preview",
       position: "top" as const,
     },
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative overflow-hidden">
       <Walkthrough steps={walkthroughSteps} storageKey="home-walkthrough" />
-      {/* Hero Section with 3D Box */}
-      <section className="container mx-auto px-4 py-12 md:py-20">
-        <div className="grid gap-12 lg:grid-cols-2 items-center">
-          {/* Left: Hero Text */}
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-            className="space-y-8"
-          >
-            <div className="space-y-4">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.6 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20"
-              >
-                <Sparkles className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">Next-Gen Supply Chain Verification</span>
-              </motion.div>
 
-              <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
-                <span className="bg-gradient-to-r from-primary via-blue-400 to-primary bg-clip-text text-transparent">
-                  Boxity
-                </span>
-                <br />
-                <span className="text-foreground">Trust What You Track.</span>
-              </h1>
-              
-              <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl">
-                Scan. Verify. Believe. <br />
-                <span className="text-base">Provenance for people. No hardware needed.</span>
-              </p>
+      {/* Decorative backgrounds */}
+      <GradientBackground />
+      <ParticleField />
+      <FloatingElements />
+
+      {/* HERO */}
+      <section className="container mx-auto px-4 md:px-6 py-12 md:py-20 relative z-20">
+        <div className="grid gap-8 lg:grid-cols-2 items-center">
+          {/* LEFT: concise, bold */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7 }}
+            className="max-w-2xl"
+          >
+            <div className="inline-flex items-center gap-3 rounded-full px-3 py-2 bg-white/80 dark:bg-white/6 backdrop-blur-sm border border-primary/10">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                Next-Gen Supply Chain Verification
+              </span>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button 
+            <h1 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight">
+              <span className="block bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500">
+                Boxity
+              </span>
+              <span className="block mt-2 text-slate-900 dark:text-slate-100">
+                Trust what you track — Scan. Verify. Believe.
+              </span>
+            </h1>
+
+            <p className="mt-4 text-lg text-slate-600 dark:text-slate-300 max-w-lg">
+              Assign a QR-backed digital identity, capture baseline photos,
+              verify each handoff with explainable AI, and persist proofs on a
+              tamper-proof ledger.
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-3 items-center">
+              <Button
                 id="try-it-out-btn"
-                size="lg" 
-                className="text-lg px-8 py-6 bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90 shadow-lg shadow-primary/25"
-                onClick={() => navigate('/admin')}
+                size="lg"
+                className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-primary to-indigo-500 shadow-lg hover:scale-[1.01] transition-transform"
+                onClick={() => navigate("/admin")}
               >
                 Try it out
+                <ArrowRight className="w-4 h-4" />
               </Button>
-              <Button 
+
+              <Button
                 id="simulate-scan-btn"
-                size="lg" 
+                size="lg"
                 variant="outline"
-                className="text-lg px-8 py-6"
-                onClick={() => navigate('/verify')}
+                className="px-5 py-3"
+                onClick={() => navigate("/verify")}
               >
                 Verify Batch
               </Button>
+
+              <div className="ml-2 text-sm text-slate-500 dark:text-slate-400">
+                <span className="font-medium">No hardware •</span> mobile-first
+              </div>
+            </div>
+
+            {/* short badges */}
+            <div className="mt-6 flex flex-wrap gap-3">
+              {[
+                { icon: Globe, label: "Global" },
+                { icon: Lock, label: "Secure" },
+                { icon: Package, label: "Provenance" },
+                { icon: Scan, label: "Instant" },
+              ].map((b) => (
+                <div
+                  key={b.label}
+                  className="flex items-center gap-2 rounded-lg px-3 py-1.5 bg-white/70 dark:bg-white/4 border border-primary/8 text-sm"
+                >
+                  <b.icon className="w-4 h-4 text-primary" />
+                  <span className="text-slate-700 dark:text-slate-200">
+                    {b.label}
+                  </span>
+                </div>
+              ))}
             </div>
           </motion.div>
 
-          {/* Right: Cubes Visualization */}
+          {/* RIGHT: interactive visual tile (tilt via framer-motion) */}
           <motion.div
-            initial={{ opacity: 0, x: 50 }}
+            ref={cardRef}
+            onMouseMove={handleMove}
+            onMouseLeave={handleLeave}
+            initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-            className="flex items-center justify-center"
+            transition={{ duration: 0.7 }}
+            className="flex justify-center"
           >
-            {/* Animated Cubes Visualization */}
-            <div style={{ height: '300px', position: 'relative', width: '100%', maxWidth: '500px' }}>
-              <Cubes 
-                gridSize={8}
-                maxAngle={60}
-                radius={4}
-                borderStyle="2px dashed #5227FF"
-                faceColor="#1a1a2e"
-                rippleColor="#ff6b6b"
-                rippleSpeed={1.5}
-                autoAnimate={true}
-                rippleOnClick={true}
-              />
-            </div>
+            <motion.div
+              style={{
+                rotateY,
+                rotateX,
+                boxShadow: "0px 10px 30px rgba(16,24,40,0.12)",
+                translateZ: 0,
+              }}
+              transition={{ type: "spring", stiffness: 160, damping: 18 }}
+              className="w-full max-w-[520px] rounded-2xl"
+            >
+              <div
+                className="relative rounded-2xl overflow-hidden border border-white/10 dark:border-white/6
+                           shadow-2xl bg-white/70 dark:bg-gradient-to-b dark:from-[#071029] dark:via-[#071023] dark:to-[#071022] p-4"
+              >
+                {/* Top meta row */}
+                <div className="flex items-center justify-between px-3 py-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-br from-primary to-indigo-500 flex items-center justify-center text-white font-bold">
+                      BT
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                        CHT-001-ABC
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                        VitaTabs • Batch
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Last: 4h
+                  </div>
+                </div>
+
+                {/* Main visual */}
+                <div className="mt-3 px-3 pb-4">
+                  <div className="relative rounded-xl overflow-hidden p-3 bg-gradient-to-br from-white/60 to-white/20 dark:from-black/40 dark:via-black/30">
+                    {/* live badge */}
+                    <div className="absolute left-3 top-3 text-xs bg-black/10 dark:bg-white/6 rounded-md px-2 py-1 text-slate-800 dark:text-slate-100">
+                      Live Demo
+                    </div>
+
+                    <div className="flex items-center justify-center h-[220px] md:h-[260px]">
+                      <Cubes
+                        gridSize={7}
+                        maxAngle={45}
+                        radius={3.2}
+                        borderStyle="1px solid rgba(82,39,255,0.9)"
+                        faceColor="transparent"
+                        rippleColor="#6EE7B7"
+                        rippleSpeed={1.1}
+                        autoAnimate={true}
+                        rippleOnClick={true}
+                      />
+                    </div>
+
+                    {/* bottom row status + actions */}
+                    <div className="mt-2 flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          Integrity: <span className="text-green-600">89</span>
+                          <span className="text-slate-500 text-xs ml-2">
+                            TIS
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                          Last: QuickShip • Verified
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-primary/90 text-white text-sm shadow"
+                          onClick={() => navigate("/verify")}
+                        >
+                          <Scan className="w-4 h-4" /> Verify
+                        </button>
+
+                        <button
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white/30 dark:bg-white/5 border border-white/6 text-sm text-slate-800 dark:text-slate-200"
+                          onClick={() => navigate("/admin")}
+                        >
+                          View
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         </div>
       </section>
 
-      {/* QR Scan Simulator Section */}
-      <section className="container mx-auto px-4 py-12">
+      {/* QR Scan Simulator */}
+      <section className="container mx-auto px-4 py-12 relative z-10">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 26 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
+          transition={{ duration: 0.7 }}
           className="flex flex-col items-center space-y-8"
         >
           <div className="text-center space-y-4">
@@ -131,17 +291,15 @@ const Index = () => {
                 Try It Now
               </span>
             </h2>
-            <p className="text-muted-foreground max-w-2xl">
+            <p className="text-muted-foreground max-w-2xl text-lg">
               Experience our QR scanning technology with this interactive demo
             </p>
           </div>
-          
-          {/* QR Scan Simulator */}
+
           <div className="w-full max-w-md">
             <QRScanAnimator onScanComplete={handleScanComplete} />
           </div>
 
-          {/* Timeline Preview */}
           {showTimeline && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -149,15 +307,17 @@ const Index = () => {
               exit={{ opacity: 0, y: -20 }}
               className="w-full max-w-md p-4 bg-card/50 backdrop-blur-sm border border-primary/30 rounded-lg"
             >
-              <p className="text-sm text-muted-foreground mb-2">Preview Timeline:</p>
+              <p className="text-sm text-muted-foreground mb-2">
+                Preview Timeline:
+              </p>
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm">
                   <div className="w-2 h-2 rounded-full bg-green-500" />
-                  <span>SwiftCargo - Dispatched</span>
+                  SwiftCargo - Dispatched
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <div className="w-2 h-2 rounded-full bg-green-500" />
-                  <span>MegaMart - Verified intact</span>
+                  MegaMart - Verified intact
                 </div>
               </div>
             </motion.div>
@@ -165,8 +325,8 @@ const Index = () => {
         </motion.div>
       </section>
 
-      {/* Process Section with 3D States */}
-      <section className="container mx-auto px-4 py-16 md:py-24">
+      {/* How it works (3 cards) */}
+      <section className="container mx-auto px-4 py-12 md:py-20 relative z-10">
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
@@ -175,130 +335,128 @@ const Index = () => {
         >
           <h2 className="text-3xl md:text-5xl font-bold text-center mb-4">
             <span className="bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">
-              How It Works
+              How it works
             </span>
           </h2>
-          <p className="text-center text-muted-foreground mb-16 max-w-2xl mx-auto">
-            Three simple steps to complete supply chain transparency
+          <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto text-lg">
+            Three simple steps to run provenance verification
           </p>
 
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-3">
             {[
               {
                 icon: Package,
-                title: '1. Create',
-                desc: 'Register your product batch',
-                detail: 'Add product details, batch information, and generate a unique QR code with verifiable digital identity.',
-                state: 'sealed' as const,
+                title: "Create",
+                desc: "Register batch & generate QR",
+                detail:
+                  "Add product details, baseline photos, and a verifiable digital identity.",
+                color: "from-green-500 to-emerald-500",
               },
               {
                 icon: Scan,
-                title: '2. Scan & Log',
-                desc: 'Track every touchpoint',
-                detail: 'Each actor logs events with timestamps, photos, and cryptographic proof at every supply chain step.',
-                state: 'in-transit' as const,
+                title: "Scan & Log",
+                desc: "Every handoff captured",
+                detail:
+                  "Actors upload photos + notes; events are hashed & recorded.",
+                color: "from-blue-500 to-cyan-500",
               },
               {
                 icon: ShieldCheck,
-                title: '3. Verify',
-                desc: 'Complete journey visibility',
-                detail: 'Anyone can scan the QR code to view the full provenance timeline with immutable blockchain records.',
-                state: 'sealed' as const,
+                title: "Verify",
+                desc: "Consumer + Regulator Trust",
+                detail: "Scan QR to see journey, TIS & cryptographic proofs.",
+                color: "from-purple-500 to-pink-500",
               },
-            ].map((step, index) => (
+            ].map((s, i) => (
               <motion.div
-                key={step.title}
-                initial={{ opacity: 0, y: 50 }}
+                key={s.title}
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.2, duration: 0.6 }}
+                transition={{ delay: i * 0.12 }}
               >
-                <GlassCard className="h-full">
-                  <div className="p-6 text-center space-y-4">
-                    {/* 3D Box Preview */}
-                    <div className="h-40 mb-4">
-                      <Box3D state={step.state} autoRotate />
+                <InteractiveCard delay={i * 0.12}>
+                  <GlassCard className="h-full">
+                    <div className="p-6 text-center">
+                      <div
+                        className={`mx-auto w-16 h-16 rounded-full bg-gradient-to-br ${s.color} flex items-center justify-center mb-4`}
+                      >
+                        <s.icon className="w-8 h-8 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold mb-2">{s.title}</h3>
+                      <p className="text-primary font-medium mb-2">{s.desc}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {s.detail}
+                      </p>
                     </div>
-
-                    {/* Icon */}
-                    <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary/20 to-blue-500/20 rounded-full flex items-center justify-center border border-primary/30">
-                      <step.icon className="h-8 w-8 text-primary" />
-                    </div>
-
-                    {/* Content */}
-                    <div>
-                      <h3 className="text-2xl font-bold mb-2">{step.title}</h3>
-                      <p className="text-primary font-medium mb-3">{step.desc}</p>
-                      <p className="text-sm text-muted-foreground">{step.detail}</p>
-                    </div>
-                  </div>
-                </GlassCard>
+                  </GlassCard>
+                </InteractiveCard>
               </motion.div>
             ))}
           </div>
         </motion.div>
       </section>
 
-      {/* CTA Section */}
-      <section className="container mx-auto px-4 py-16 md:py-24">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <GlassCard className="overflow-hidden">
-            <div className="relative p-12 text-center space-y-6">
-              {/* Gradient Background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-blue-500/10 to-transparent" />
-              
-              {/* Content */}
-              <div className="relative z-10">
-                <motion.h2 
-                  className="text-3xl md:text-5xl font-bold mb-4"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.2 }}
+      {/* Features + CTA */}
+      <section className="container mx-auto px-4 py-12 md:py-20 relative z-10">
+        <div className="grid gap-8 lg:grid-cols-2 items-center">
+          <div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Boxity?</h2>
+            <p className="text-muted-foreground mb-6 max-w-xl">
+              Explainable AI, blockchain anchoring, and consumer-facing
+              transparency — all in a mobile-first package.
+            </p>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                { icon: Zap, title: "Lightning Fast" },
+                { icon: ShieldCheck, title: "Bank-Level Security" },
+                { icon: Globe, title: "Global Reach" },
+                { icon: Star, title: "Easy Integration" },
+              ].map((f) => (
+                <div
+                  key={f.title}
+                  className="flex items-center gap-3 bg-white/70 dark:bg-white/4 rounded-lg px-4 py-3"
                 >
-                  Ready to build trust in your supply chain?
-                </motion.h2>
-                <motion.p 
-                  className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.3 }}
-                >
-                  Start tracking your products today with our demo platform. Experience the future of provenance verification.
-                </motion.p>
-                <motion.div 
-                  className="flex flex-col sm:flex-row gap-4 justify-center"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.4 }}
-                >
-                  <Button 
-                    size="lg" 
-                    className="text-lg px-8 py-6 bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90 shadow-lg shadow-primary/25"
-                    onClick={() => navigate('/admin')}
-                  >
-                    Get Started Now
-                  </Button>
-                  <Button 
-                    size="lg" 
-                    variant="outline"
-                    className="text-lg px-8 py-6"
-                    onClick={() => navigate('/verify')}
-                  >
-                    View Demo
-                  </Button>
-                </motion.div>
-              </div>
+                  <f.icon className="w-6 h-6 text-primary" />
+                  <div>
+                    <div className="font-semibold">{f.title}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Trusted by supply chain operators
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          </GlassCard>
-        </motion.div>
+          </div>
+
+          <div className="text-center">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold">Ready to build trust?</h3>
+              <p className="text-muted-foreground">
+                Start tracking products and reduce fraud with visual
+                verification.
+              </p>
+            </div>
+
+            <div className="flex justify-center gap-4">
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-primary to-blue-500"
+                onClick={() => navigate("/admin")}
+              >
+                Get Started
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => navigate("/verify")}
+              >
+                View Demo
+              </Button>
+            </div>
+          </div>
+        </div>
       </section>
     </div>
   );
