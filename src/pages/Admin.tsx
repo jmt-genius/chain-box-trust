@@ -14,7 +14,7 @@ import { loadBatches, saveBatches, type Batch as DemoBatch } from '@/lib/demoDat
 import { web3Service, type Batch as ContractBatch } from '@/lib/web3';
 import ClickSpark from '@/components/ClickSpark';
 import QRCode from 'qrcode';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, Upload } from 'lucide-react';
 
 const Admin = () => {
   const { toast } = useToast();
@@ -267,24 +267,43 @@ const handlePinataUpload = async (file: File): Promise<string> => {
       style={{ flex: 1 }}
       disabled={isUploadingImage}
     />
-    <input
-      type="file"
-      accept="image/*"
-      disabled={isUploadingImage}
-      style={{ width: 140, background: "white" }}
-      onChange={async (e) => {
-        const file = e.target.files?.[0];
-        if (file) {
-          try {
-            const url = await handlePinataUpload(file);
-            setBaselineImage(url);
-            toast({ title: "Upload Success", description: "Image uploaded to IPFS." });
-          } catch {
-            toast({ title: "Upload Error", description: "Failed to upload image to Pinata", variant: "destructive" });
-          }
-        }
-      }}
-    />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = async (e) => {
+                      const file = (e.target as HTMLInputElement).files?.[0];
+                      if (file) {
+                        try {
+                          const url = await handlePinataUpload(file);
+                          setBaselineImage(url);
+                          toast({ title: "Upload Success", description: "Image uploaded to IPFS." });
+                        } catch {
+                          toast({ title: "Upload Error", description: "Failed to upload image to Pinata", variant: "destructive" });
+                        }
+                      }
+                    };
+                    input.click();
+                  }}
+                  disabled={isUploadingImage}
+                  className="gap-2"
+                >
+                  {isUploadingImage ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      Choose File
+                    </>
+                  )}
+                </Button>
   </div>
   {isUploadingImage && <span className="text-xs text-blue-500">Uploading image...</span>}
   {baselineImage && (

@@ -9,6 +9,8 @@ import {
   AlertTriangle,
   Download,
   Loader2,
+  Upload,
+  ShieldCheck,
 } from "lucide-react";
 
 import {
@@ -86,6 +88,9 @@ export default function LogEvent(): JSX.Element {
   const [justScanned, setJustScanned] = useState<boolean>(false);
   const [isLogging, setIsLogging] = useState<boolean>(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isCheckingIntegrity, setIsCheckingIntegrity] = useState(false);
+  const [integrityResult, setIntegrityResult] = useState<{passed: boolean, score?: number} | null>(null);
+  const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null);
 
   const JWT = import.meta.env.VITE_PINATA_JWT;
 
@@ -110,6 +115,71 @@ export default function LogEvent(): JSX.Element {
       }
     } finally {
       setIsUploadingImage(false);
+    }
+  };
+
+  const checkIntegrity = async (beforeImageUrl: string, afterImageFile: File) => {
+    setIsCheckingIntegrity(true);
+    setIntegrityResult(null);
+    
+    try {
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const afterImageBase64 = reader.result as string;
+        
+        // Call integrity check API (similar to IntegrityCheck.tsx)
+        const formData = new FormData();
+        formData.append("before_image", beforeImageUrl);
+        formData.append("after_image", afterImageBase64);
+        
+        const response = await fetch("http://localhost:8000/compare", {
+          method: "POST",
+          body: formData,
+        });
+        
+        if (!response.ok) {
+          throw new Error("Integrity check failed");
+        }
+        
+        const data = await response.json();
+        const differences = data.differences || [];
+        
+        // Consider integrity passed if no critical differences found
+        const criticalDifferences = differences.filter((d: any) => 
+          d.severity === "critical" || d.severity === "high"
+        );
+        
+        const passed = criticalDifferences.length === 0;
+        const score = passed ? 95 : Math.max(0, 100 - (criticalDifferences.length * 20));
+        
+        setIntegrityResult({ passed, score });
+        
+        if (passed) {
+          toast({
+            title: "Integrity Check Passed",
+            description: `Image integrity verified with score: ${score}%`,
+          });
+        } else {
+          toast({
+            title: "Integrity Check Failed",
+            description: `Found ${criticalDifferences.length} critical differences`,
+            variant: "destructive",
+          });
+        }
+      };
+      
+      reader.readAsDataURL(afterImageFile);
+    } catch (error) {
+      console.error('Integrity check error:', error);
+      toast({
+        title: "Integrity Check Error",
+        description: "Failed to perform integrity check",
+        variant: "destructive",
+      });
+      setIntegrityResult({ passed: false, score: 0 });
+    } finally {
+      setIsCheckingIntegrity(false);
     }
   };
 
@@ -614,25 +684,139 @@ export default function LogEvent(): JSX.Element {
                     style={{ flex: 1 }}
                     disabled={isUploadingImage}
                   />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    disabled={isUploadingImage}
-                    style={{ width: 140, background: "white" }}
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        try {
-                          const url = await handlePinataUpload(file);
-                          setImage(url);
-                          toast({ title: "Upload Success", description: "Image uploaded to IPFS." });
-                        } catch {
-                          toast({ title: "Upload Error", description: "Failed to upload image to Pinata", variant: "destructive" });
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/*';
+                      input.onchange = async (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (file) {
+                          setUploadedImageFile(file);
+                          // Don't upload to IPFS yet, wait for integrity check
+                          toast({ 
+                            title: "Image Selected", 
+                            description: "Click 'Check Integrity' to verify before uploading to blockchain." 
+                          });
                         }
-                      }
+                      };
+                      input.click();
                     }}
-                  />
+                    disabled={isUploadingImage}
+                    className="gap-2"
+                  >
+                    {isUploadingImage ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4" />
+                        Choose File
+                      </>
+                    )}
+                  </Button>
                 </div>
+                
+                {/* Integrity Check Section */}
+                {uploadedImageFile && selectedBatch && (
+                  <div className="mt-4 p-4 border rounded-lg bg-muted/50">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h4 className="font-semibold text-sm">Integrity Check Required</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Compare uploaded image with baseline image from batch: {selectedBatch.id}
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => {
+                          if (selectedBatch && uploadedImageFile) {
+                            checkIntegrity(selectedBatch.baselineImage, uploadedImageFile);
+                          }
+                        }}
+                        disabled={isCheckingIntegrity || !selectedBatch?.baselineImage}
+                        size="sm"
+                        className="gap-2"
+                      >
+                        {isCheckingIntegrity ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Checking...
+                          </>
+                        ) : (
+                          <>
+                            <ShieldCheck className="h-4 w-4" />
+                            Check Integrity
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    
+                    {/* Integrity Result */}
+                    {integrityResult && (
+                      <div className={`p-3 rounded-lg border ${
+                        integrityResult.passed 
+                          ? 'bg-green-50 border-green-200' 
+                          : 'bg-red-50 border-red-200'
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          {integrityResult.passed ? (
+                            <CheckCircle2 className="h-5 w-5 text-green-600" />
+                          ) : (
+                            <AlertTriangle className="h-5 w-5 text-red-600" />
+                          )}
+                          <span className={`font-semibold ${
+                            integrityResult.passed ? 'text-green-800' : 'text-red-800'
+                          }`}>
+                            {integrityResult.passed ? 'Integrity Check Passed' : 'Integrity Check Failed'}
+                          </span>
+                          {integrityResult.score && (
+                            <span className={`text-sm ${
+                              integrityResult.passed ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              ({integrityResult.score}%)
+                            </span>
+                          )}
+                        </div>
+                        
+                        {integrityResult.passed && (
+                          <Button
+                            onClick={async () => {
+                              if (uploadedImageFile) {
+                                try {
+                                  const url = await handlePinataUpload(uploadedImageFile);
+                                  setImage(url);
+                                  setUploadedImageFile(null);
+                                  setIntegrityResult(null);
+                                  toast({ 
+                                    title: "Upload Success", 
+                                    description: "Image uploaded to IPFS and ready for blockchain." 
+                                  });
+                                } catch {
+                                  toast({ 
+                                    title: "Upload Error", 
+                                    description: "Failed to upload image to Pinata", 
+                                    variant: "destructive" 
+                                  });
+                                }
+                              }
+                            }}
+                            size="sm"
+                            className="mt-2 gap-2"
+                          >
+                            <Upload className="h-4 w-4" />
+                            Upload to IPFS
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 {isUploadingImage && <span className="text-xs text-blue-500">Uploading image...</span>}
                 {image ? (
                   <div className="rounded-xl border p-2">
@@ -649,12 +833,21 @@ export default function LogEvent(): JSX.Element {
                 <Button 
                   onClick={handleSubmit} 
                   className="w-full"
-                  disabled={isLogging || (isContractBatch && !connectedAddress)}
+                  disabled={
+                    isLogging || 
+                    (isContractBatch && !connectedAddress) ||
+                    (uploadedImageFile && !integrityResult?.passed)
+                  }
                 >
                   {isLogging ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       {isContractBatch ? 'Logging to Blockchain...' : 'Logging Event...'}
+                    </>
+                  ) : uploadedImageFile && !integrityResult?.passed ? (
+                    <>
+                      <ShieldCheck className="mr-2 h-4 w-4" />
+                      Complete Integrity Check First
                     </>
                   ) : (
                     isContractBatch ? 'Log Event to Blockchain' : 'Log Event'
