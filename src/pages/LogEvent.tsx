@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Download,
+  Loader2,
 } from "lucide-react";
 
 import {
@@ -38,18 +39,20 @@ import {
 
 import { useToast } from "@/hooks/use-toast";
 import { Walkthrough } from "@/components/Walkthrough";
+import { WalletConnect } from "@/components/WalletConnect";
 
 import {
   loadBatches,
   saveBatches,
   generateHash,
   generateLedgerRef,
-  type BatchEvent,
+  type BatchEvent as DemoBatchEvent,
   parseQrPayload,
   findBatchById,
-  type Batch,
+  type Batch as DemoBatch,
 } from "@/lib/demoData";
 
+import { web3Service, type Batch as ContractBatch, type BatchEvent as ContractBatchEvent } from "@/lib/web3";
 import QRScanner from "@/components/QRScanner";
 import QRCode from "qrcode";
 
@@ -64,7 +67,9 @@ const roles: ReadonlyArray<string> = [
 
 export default function LogEvent(): JSX.Element {
   const { toast } = useToast();
-  const [batches, setBatches] = useState<Batch[]>([]);
+  const [demoBatches, setDemoBatches] = useState<DemoBatch[]>([]);
+  const [contractBatches, setContractBatches] = useState<ContractBatch[]>([]);
+  const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
 
   const [batchId, setBatchId] = useState<string>("");
   const [actor, setActor] = useState<string>("");
@@ -78,17 +83,57 @@ export default function LogEvent(): JSX.Element {
 
   const [qrPngUrl, setQrPngUrl] = useState<string>("");
   const [justScanned, setJustScanned] = useState<boolean>(false);
+  const [isLogging, setIsLogging] = useState<boolean>(false);
 
   useEffect(() => {
-    setBatches(loadBatches());
+    setDemoBatches(loadBatches());
   }, []);
 
-  const selectedBatch = useMemo<Batch | undefined>(
-    () => batches.find((b) => b.id === batchId),
-    [batches, batchId]
+  // Load contract batches when connected
+  useEffect(() => {
+    if (connectedAddress) {
+      loadContractBatches();
+    }
+  }, [connectedAddress]);
+
+  const loadContractBatches = async () => {
+    if (!connectedAddress) return;
+    
+    try {
+      const batchIds = await web3Service.getAllBatchIds();
+      const batches: ContractBatch[] = [];
+      
+      for (const batchId of batchIds) {
+        try {
+          const batch = await web3Service.getBatch(batchId);
+          batches.push(batch);
+        } catch (error) {
+          console.error(`Failed to load batch ${batchId}:`, error);
+        }
+      }
+      
+      setContractBatches(batches);
+    } catch (error) {
+      console.error('Failed to load contract batches:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load batches from contract',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const selectedBatch = useMemo<ContractBatch | DemoBatch | undefined>(
+    () => contractBatches.find((b) => b.id === batchId) || demoBatches.find((b) => b.id === batchId),
+    [contractBatches, demoBatches, batchId]
   );
 
-  const handleSubmit = (): void => {
+  const isContractBatch = useMemo<boolean>(
+    () => contractBatches.some((b) => b.id === batchId),
+    [contractBatches, batchId]
+  );
+
+  const handleSubmit = async (): Promise<void> => {
     if (!batchId || !actor || !role || !note) {
       toast({
         title: "Missing info",
@@ -98,7 +143,76 @@ export default function LogEvent(): JSX.Element {
       return;
     }
 
-    const batchIndex = batches.findIndex((b) => b.id === batchId);
+    if (!selectedBatch) {
+      toast({
+        title: "Batch not found",
+        description: "Select a valid batch or scan a QR",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Handle contract batch event logging
+    if (isContractBatch) {
+      if (!connectedAddress) {
+        toast({
+          title: "Wallet Required",
+          description: "Please connect your wallet to log events for blockchain batches",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setIsLogging(true);
+      try {
+        // Generate event hash for blockchain
+        const eventHash = generateHash(`${batchId}${actor}${Date.now()}`);
+        
+        const tx = await web3Service.logEvent(
+          batchId,
+          actor,
+          role,
+          note,
+          image || '',
+          eventHash
+        );
+
+        toast({
+          title: "Transaction Sent",
+          description: "Waiting for blockchain confirmation...",
+        });
+
+        const receipt = await web3Service.waitForTransaction(tx);
+        
+        if (receipt) {
+          // Reload contract batches to show updated events
+          await loadContractBatches();
+          
+          toast({
+            title: "Event Logged Successfully",
+            description: "Event has been recorded on the blockchain!",
+          });
+
+          setActor("");
+          setRole("");
+          setNote("");
+          setImage("");
+        }
+      } catch (error: any) {
+        console.error('Event logging error:', error);
+        toast({
+          title: 'Error',
+          description: error.message || 'Failed to log event on blockchain',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLogging(false);
+      }
+      return;
+    }
+
+    // Handle demo batch event logging (existing functionality)
+    const batchIndex = demoBatches.findIndex((b) => b.id === batchId);
     if (batchIndex === -1) {
       toast({
         title: "Batch not found",
@@ -108,7 +222,7 @@ export default function LogEvent(): JSX.Element {
       return;
     }
 
-    const newEvent: BatchEvent = {
+    const newEvent: DemoBatchEvent = {
       id: `evt-${Date.now()}`,
       actor,
       role,
@@ -119,13 +233,13 @@ export default function LogEvent(): JSX.Element {
       ledgerRef: generateLedgerRef(),
     };
 
-    const next = [...batches];
+    const next = [...demoBatches];
     next[batchIndex] = {
       ...next[batchIndex],
       events: [...next[batchIndex].events, newEvent],
     };
 
-    setBatches(next);
+    setDemoBatches(next);
     saveBatches(next);
 
     toast({
@@ -159,14 +273,18 @@ export default function LogEvent(): JSX.Element {
     const changed: string[] = [];
 
     if (payload.batchId) {
-      const found = findBatchById(batches, payload.batchId);
+      // Check contract batches first, then demo batches
+      const contractFound = contractBatches.find(b => b.id === payload.batchId);
+      const demoFound = findBatchById(demoBatches, payload.batchId);
+      const found = contractFound || demoFound;
+      
       if (found) {
         setBatchId(found.id);
-        changed.push(`Batch → ${found.id}`);
+        changed.push(`Batch → ${found.id}${contractFound ? ' (Blockchain)' : ' (Demo)'}`);
       } else {
         toast({
           title: "Batch not found",
-          description: `Scanned batch "${payload.batchId}" was not found in demo data.`,
+          description: `Scanned batch "${payload.batchId}" was not found in demo data or blockchain.`,
           variant: "destructive",
         });
       }
@@ -256,14 +374,17 @@ export default function LogEvent(): JSX.Element {
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <Walkthrough steps={walkthroughSteps} storageKey="log-event-walkthrough" />
-      <motion.h1
-        className="text-3xl md:text-4xl font-bold mb-6 tracking-tight"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        Log Event
-      </motion.h1>
+      <div className="flex justify-between items-center mb-6">
+        <motion.h1
+          className="text-3xl md:text-4xl font-bold tracking-tight"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          Log Event
+        </motion.h1>
+        <WalletConnect onAddressChange={setConnectedAddress} />
+      </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Left: Form */}
@@ -331,17 +452,60 @@ export default function LogEvent(): JSX.Element {
                     <SelectValue placeholder="Select a batch or scan QR" />
                   </SelectTrigger>
                   <SelectContent>
-                    {batches.map((batch) => (
-                      <SelectItem key={batch.id} value={batch.id}>
-                        {batch.id} — {batch.productName}
-                      </SelectItem>
-                    ))}
+                    {/* Contract Batches */}
+                    {contractBatches.length > 0 && (
+                      <>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                          Blockchain Batches
+                        </div>
+                        {contractBatches.map((batch) => (
+                          <SelectItem key={batch.id} value={batch.id}>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-xs bg-green-100 text-green-800 px-1.5 py-0.5 rounded">
+                                BLOCKCHAIN
+                              </span>
+                              {batch.id} — {batch.productName}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
+                    
+                    {/* Demo Batches */}
+                    {demoBatches.length > 0 && (
+                      <>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                          Demo Batches
+                        </div>
+                        {demoBatches.map((batch) => (
+                          <SelectItem key={batch.id} value={batch.id}>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
+                                DEMO
+                              </span>
+                              {batch.id} — {batch.productName}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
+                    
+                    {contractBatches.length === 0 && demoBatches.length === 0 && (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                        No batches available
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
                 {selectedBatch && (
                   <div className="text-[11px] text-muted-foreground">
                     <span className="font-medium">Origin:</span>{" "}
                     {selectedBatch.origin}
+                    {isContractBatch && (
+                      <span className="ml-2 px-1.5 py-0.5 bg-green-100 text-green-800 text-xs rounded">
+                        Blockchain
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -414,8 +578,19 @@ export default function LogEvent(): JSX.Element {
               </div>
 
               <motion.div whileTap={{ scale: 0.98 }}>
-                <Button onClick={handleSubmit} className="w-full">
-                  Log Event
+                <Button 
+                  onClick={handleSubmit} 
+                  className="w-full"
+                  disabled={isLogging || (isContractBatch && !connectedAddress)}
+                >
+                  {isLogging ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {isContractBatch ? 'Logging to Blockchain...' : 'Logging Event...'}
+                    </>
+                  ) : (
+                    isContractBatch ? 'Log Event to Blockchain' : 'Log Event'
+                  )}
                 </Button>
               </motion.div>
 

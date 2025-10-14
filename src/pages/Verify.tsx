@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,43 +7,164 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Walkthrough } from '@/components/Walkthrough';
-import { loadBatches, type Batch } from '@/lib/demoData';
-import { Search, Package } from 'lucide-react';
+import { WalletConnect } from '@/components/WalletConnect';
+import { loadBatches, type Batch as DemoBatch } from '@/lib/demoData';
+import { web3Service, type Batch as ContractBatch, type BatchEvent as ContractBatchEvent } from '@/lib/web3';
+import { Search, Package, Loader2, Shield, Database } from 'lucide-react';
 import { QRScanAnimator } from '@/components/QRScanAnimator';
 import { AnimatedTimeline } from '@/components/AnimatedTimeline';
 import { GlassCard } from '@/components/GlassCard';
 
+// Component to display contract batch events
+const ContractBatchTimeline = ({ batchId }: { batchId: string }) => {
+  const [events, setEvents] = useState<ContractBatchEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        setLoading(true);
+        const batchEvents = await web3Service.getBatchEvents(batchId);
+        setEvents(batchEvents);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to load batch events:', err);
+        setError('Failed to load events from blockchain');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadEvents();
+  }, [batchId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+        <span>Loading blockchain events...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-destructive">{error}</p>
+      </div>
+    );
+  }
+
+  if (events.length === 0) {
+    return (
+      <p className="text-muted-foreground text-center py-8">No events logged yet on blockchain</p>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {events.map((event, index) => (
+        <motion.div
+          key={event.id}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: index * 0.1 }}
+          className="flex gap-4 p-4 border rounded-lg bg-card"
+        >
+          <div className="flex-shrink-0">
+            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+              <span className="text-xs font-bold text-primary">{event.id}</span>
+            </div>
+          </div>
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">{event.role}</Badge>
+              <span className="font-medium">{event.actor}</span>
+              <Badge className="bg-green-100 text-green-800">
+                <Shield className="mr-1 h-3 w-3" />
+                Blockchain
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">{event.note}</p>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span>{new Date(event.timestamp * 1000).toLocaleString()}</span>
+              <span className="font-mono">Hash: {event.eventHash.slice(0, 8)}...</span>
+            </div>
+            {event.image && (
+              <img 
+                src={event.image} 
+                alt="Event image" 
+                className="w-16 h-16 object-cover rounded border"
+                onError={(e) => {
+                  e.currentTarget.src = '/placeholder.svg';
+                }}
+              />
+            )}
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+};
+
 const Verify = () => {
   const [searchId, setSearchId] = useState('');
-  const [batch, setBatch] = useState<Batch | null>(null);
+  const [batch, setBatch] = useState<ContractBatch | DemoBatch | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
+  const [isContractBatch, setIsContractBatch] = useState(false);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
+    if (!searchId.trim()) return;
+    
     setIsScanning(true);
-    setTimeout(() => {
-      const batches = loadBatches();
-      const found = batches.find(b => b.id === searchId.trim());
-      
-      if (found) {
-        setBatch(found);
-        setNotFound(false);
-      } else {
-        setBatch(null);
-        setNotFound(true);
+    setNotFound(false);
+    setBatch(null);
+    setIsContractBatch(false);
+    
+    try {
+      // First try to find in contract batches (if connected)
+      if (connectedAddress) {
+        try {
+          const contractBatch = await web3Service.getBatch(searchId.trim());
+          if (contractBatch && contractBatch.exists) {
+            setBatch(contractBatch);
+            setIsContractBatch(true);
+            setIsScanning(false);
+            return;
+          }
+        } catch (error) {
+          // Batch not found in contract, continue to demo search
+          console.log('Batch not found in contract, checking demo batches');
+        }
       }
+      
+      // If not found in contract or not connected, check demo batches
+      setTimeout(() => {
+        const demoBatches = loadBatches();
+        const found = demoBatches.find(b => b.id === searchId.trim());
+        
+        if (found) {
+          setBatch(found);
+          setIsContractBatch(false);
+        } else {
+          setNotFound(true);
+        }
+        setIsScanning(false);
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Search error:', error);
+      setNotFound(true);
       setIsScanning(false);
-    }, 2500);
+    }
   };
 
-  const handleScanComplete = (batchId: string) => {
+  const handleScanComplete = async (batchId: string) => {
     setSearchId(batchId);
-    const batches = loadBatches();
-    const found = batches.find(b => b.id === batchId);
-    if (found) {
-      setBatch(found);
-      setNotFound(false);
-    }
+    await handleSearch();
   };
 
   const demoSuggestions = ['CHT-001-ABC', 'CHT-002-XYZ', 'CHT-DEMO'];
@@ -66,13 +187,16 @@ const Verify = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <Walkthrough steps={walkthroughSteps} storageKey="verify-walkthrough" />
-      <motion.h1 
-        className="text-4xl md:text-5xl font-bold mb-8 bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        Verify Batch
-      </motion.h1>
+      <div className="flex justify-between items-center mb-8">
+        <motion.h1 
+          className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          Verify Batch
+        </motion.h1>
+        <WalletConnect onAddressChange={setConnectedAddress} />
+      </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Search Form */}
@@ -96,8 +220,17 @@ const Verify = () => {
                 </div>
                 <div className="flex items-end">
                   <Button id="verify-btn" onClick={handleSearch} disabled={isScanning}>
-                    <Search className="mr-2 h-4 w-4" />
-                    {isScanning ? 'Scanning...' : 'Get Log'}
+                    {isScanning ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Scanning...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="mr-2 h-4 w-4" />
+                        Get Log
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -150,9 +283,17 @@ const Verify = () => {
 
             <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
               <p className="text-sm font-medium">
-                💡 Each event is cryptographically signed and includes immutable blockchain references for complete transparency.
+                💡 Connect your wallet to verify blockchain batches with cryptographic signatures and immutable event records.
               </p>
             </div>
+
+            {connectedAddress && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm font-medium text-green-800">
+                  ✅ Wallet connected! You can now verify blockchain batches with full cryptographic transparency.
+                </p>
+              </div>
+            )}
           </CardContent>
         </GlassCard>
       </div>
@@ -176,11 +317,28 @@ const Verify = () => {
           {/* Batch Info */}
           <GlassCard>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                {batch.productName}
-              </CardTitle>
-              <CardDescription>Batch ID: {batch.id}</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    {batch.productName}
+                  </CardTitle>
+                  <CardDescription>Batch ID: {batch.id}</CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  {isContractBatch ? (
+                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                      <Shield className="mr-1 h-3 w-3" />
+                      Blockchain
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      <Database className="mr-1 h-3 w-3" />
+                      Demo
+                    </Badge>
+                  )}
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-3">
@@ -218,13 +376,24 @@ const Verify = () => {
           <GlassCard>
             <CardHeader>
               <CardTitle>Supply Chain Timeline</CardTitle>
-              <CardDescription>{batch.events.length} events recorded</CardDescription>
+              <CardDescription>
+                {isContractBatch 
+                  ? `${(batch as ContractBatch).events?.length || 0} events recorded on blockchain`
+                  : `${(batch as DemoBatch).events?.length || 0} events recorded`
+                }
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              {batch.events.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No events logged yet</p>
+              {isContractBatch ? (
+                <ContractBatchTimeline batchId={batch.id} />
               ) : (
-                <AnimatedTimeline events={batch.events} />
+                <>
+                  {(batch as DemoBatch).events?.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">No events logged yet</p>
+                  ) : (
+                    <AnimatedTimeline events={(batch as DemoBatch).events || []} />
+                  )}
+                </>
               )}
             </CardContent>
           </GlassCard>
