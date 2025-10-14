@@ -12,10 +12,25 @@ interface DifferenceResult {
   description: string;
 }
 
+interface BackendDifference {
+  id?: string;
+  region?: string;
+  bbox?: [number, number, number, number] | null;
+  type?: string;
+  description?: string;
+  severity?: string;
+  confidence?: number;
+  explainability?: string[];
+  suggested_action?: string;
+  tis_delta?: number;
+}
+
 export default function IntegrityCheck() {
   const [beforeImage, setBeforeImage] = useState<string | null>(null);
   const [afterImage, setAfterImage] = useState<string | null>(null);
-  const [differences, setDifferences] = useState<DifferenceResult[] | null>(null);
+  const [differences, setDifferences] = useState<DifferenceResult[] | null>(
+    null
+  );
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const { toast } = useToast();
@@ -41,9 +56,11 @@ export default function IntegrityCheck() {
   const loadDemoMode = () => {
     setIsDemoMode(true);
     // Demo images - using placeholder data URIs
-    const demoBeforeImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%2320184f'/%3E%3Ctext x='50%25' y='50%25' font-size='20' fill='white' text-anchor='middle' dy='.3em'%3ESealed Box - Pristine%3C/text%3E%3Crect x='50' y='50' width='300' height='300' fill='none' stroke='%238b5cf6' stroke-width='3' rx='10'/%3E%3C/svg%3E";
-    const demoAfterImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%2320184f'/%3E%3Ctext x='50%25' y='50%25' font-size='20' fill='white' text-anchor='middle' dy='.3em'%3EBox - With Damage%3C/text%3E%3Crect x='50' y='50' width='300' height='300' fill='none' stroke='%23ef4444' stroke-width='3' rx='10'/%3E%3Cpolygon points='300,100 350,80 320,120' fill='%23ef4444' opacity='0.7'/%3E%3Cline x1='60' y1='200' x2='150' y2='210' stroke='%23f97316' stroke-width='2'/%3E%3C/svg%3E";
-    
+    const demoBeforeImage =
+      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%2320184f'/%3E%3Ctext x='50%25' y='50%25' font-size='20' fill='white' text-anchor='middle' dy='.3em'%3ESealed Box - Pristine%3C/text%3E%3Crect x='50' y='50' width='300' height='300' fill='none' stroke='%238b5cf6' stroke-width='3' rx='10'/%3E%3C/svg%3E";
+    const demoAfterImage =
+      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%2320184f'/%3E%3Ctext x='50%25' y='50%25' font-size='20' fill='white' text-anchor='middle' dy='.3em'%3EBox - With Damage%3C/text%3E%3Crect x='50' y='50' width='300' height='300' fill='none' stroke='%23ef4444' stroke-width='3' rx='10'/%3E%3Cpolygon points='300,100 350,80 320,120' fill='%23ef4444' opacity='0.7'/%3E%3Cline x1='60' y1='200' x2='150' y2='210' stroke='%23f97316' stroke-width='2'/%3E%3C/svg%3E";
+
     setBeforeImage(demoBeforeImage);
     setAfterImage(demoAfterImage);
 
@@ -65,34 +82,83 @@ export default function IntegrityCheck() {
 
     setIsAnalyzing(true);
 
-    // Simulate analysis
-    setTimeout(() => {
-      const hardcodedDifferences: DifferenceResult[] = [
-        {
-          location: "Top-right corner",
-          severity: "medium",
-          description: "Visible dent detected (3.2mm depth)",
-        },
-        {
-          location: "Left side panel",
-          severity: "low",
-          description: "Minor surface scratches",
-        },
-        {
-          location: "Seal integrity",
-          severity: "high",
-          description: "Seal appears tampered - security breach detected",
-        },
-      ];
+    // If demo mode is enabled, keep existing simulated behavior
+    if (isDemoMode) {
+      setTimeout(() => {
+        const hardcodedDifferences: DifferenceResult[] = [
+          {
+            location: "Top-right corner",
+            severity: "medium",
+            description: "Visible dent detected (3.2mm depth)",
+          },
+          {
+            location: "Left side panel",
+            severity: "low",
+            description: "Minor surface scratches",
+          },
+          {
+            location: "Seal integrity",
+            severity: "high",
+            description: "Seal appears tampered - security breach detected",
+          },
+        ];
+        setDifferences(hardcodedDifferences);
+        setIsAnalyzing(false);
+        toast({
+          title: "Analysis complete",
+          description: `Found ${hardcodedDifferences.length} differences`,
+        });
+      }, 2000);
+      return;
+    }
 
-      setDifferences(hardcodedDifferences);
-      setIsAnalyzing(false);
-
-      toast({
-        title: "Analysis complete",
-        description: `Found ${hardcodedDifferences.length} differences`,
-      });
-    }, 2000);
+    // Call backend analyzer when not in demo mode
+    const API_BASE = import.meta.env.VITE_BACKEND_URL || "/api";
+    fetch(`${API_BASE}/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        baseline_b64: beforeImage,
+        current_b64: afterImage,
+      }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error(`Analyzer returned ${res.status}`);
+        }
+        return res.json() as Promise<{ differences?: BackendDifference[] }>;
+      })
+      .then((data) => {
+        // Map backend schema to UI DifferenceResult
+        const mapped: DifferenceResult[] = Array.isArray(data?.differences)
+          ? data.differences.map((d: BackendDifference) => ({
+              location: d?.region || "Unknown region",
+              severity: (String(d?.severity || "LOW").toLowerCase() ===
+              "critical"
+                ? "high"
+                : String(d?.severity || "LOW").toLowerCase() === "high"
+                ? "high"
+                : String(d?.severity || "LOW").toLowerCase() === "medium"
+                ? "medium"
+                : "low") as "low" | "medium" | "high",
+              description: d?.description || "",
+            }))
+          : [];
+        setDifferences(mapped);
+        toast({
+          title: "Analysis complete",
+          description: `Found ${mapped.length} differences`,
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+        toast({
+          title: "Analysis failed",
+          description: "Could not analyze images. Check backend URL/API.",
+          variant: "destructive",
+        });
+      })
+      .finally(() => setIsAnalyzing(false));
   };
 
   return (
