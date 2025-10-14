@@ -89,8 +89,9 @@ export default function LogEvent(): JSX.Element {
   const [isLogging, setIsLogging] = useState<boolean>(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isCheckingIntegrity, setIsCheckingIntegrity] = useState(false);
-  const [integrityResult, setIntegrityResult] = useState<{passed: boolean, score?: number} | null>(null);
+  const [integrityResult, setIntegrityResult] = useState<{passed: boolean, score?: number, differences?: any[]} | null>(null);
   const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null);
+  const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
 
   const JWT = import.meta.env.VITE_PINATA_JWT;
 
@@ -128,42 +129,52 @@ export default function LogEvent(): JSX.Element {
       reader.onload = async () => {
         const afterImageBase64 = reader.result as string;
         
-        // Call integrity check API (similar to IntegrityCheck.tsx)
-        const formData = new FormData();
-        formData.append("before_image", beforeImageUrl);
-        formData.append("after_image", afterImageBase64);
-        
-        const response = await fetch("http://localhost:8000/compare", {
+        // Call integrity check API (same as IntegrityCheck.tsx)
+        const API_BASE = import.meta.env.VITE_BACKEND_URL || "/api";
+        const response = await fetch(`${API_BASE}/analyze`, {
           method: "POST",
-          body: formData,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            baseline_b64: beforeImageUrl,
+            current_b64: afterImageBase64,
+          }),
         });
         
         if (!response.ok) {
-          throw new Error("Integrity check failed");
+          throw new Error(`Analyzer returned ${response.status}`);
         }
         
         const data = await response.json();
         const differences = data.differences || [];
         
-        // Consider integrity passed if no critical differences found
-        const criticalDifferences = differences.filter((d: any) => 
-          d.severity === "critical" || d.severity === "high"
-        );
+        // Map backend schema to UI format (same as IntegrityCheck.tsx)
+        const mapped = differences.map((d: any) => ({
+          location: d?.region || "Unknown region",
+          severity: (String(d?.severity || "LOW").toLowerCase() === "critical"
+            ? "high"
+            : String(d?.severity || "LOW").toLowerCase() === "high"
+            ? "high"
+            : String(d?.severity || "LOW").toLowerCase() === "medium"
+            ? "medium"
+            : "low") as "low" | "medium" | "high",
+          description: d?.description || "",
+        }));
         
-        const passed = criticalDifferences.length === 0;
-        const score = passed ? 95 : Math.max(0, 100 - (criticalDifferences.length * 20));
+        // Allow upload if 9 or fewer differences found (as requested)
+        const passed = mapped.length <= 2;
+        const score = passed ? Math.max(70, 100 - (mapped.length * 3)) : Math.max(0, 100 - (mapped.length * 10));
         
-        setIntegrityResult({ passed, score });
+        setIntegrityResult({ passed, score, differences: mapped });
         
         if (passed) {
           toast({
             title: "Integrity Check Passed",
-            description: `Image integrity verified with score: ${score}%`,
+            description: `Found ${mapped.length} differences (≤9 allowed). Score: ${score}%`,
           });
         } else {
           toast({
             title: "Integrity Check Failed",
-            description: `Found ${criticalDifferences.length} critical differences`,
+            description: `Found ${mapped.length} differences (>9 not allowed)`,
             variant: "destructive",
           });
         }
@@ -177,7 +188,7 @@ export default function LogEvent(): JSX.Element {
         description: "Failed to perform integrity check",
         variant: "destructive",
       });
-      setIntegrityResult({ passed: false, score: 0 });
+      setIntegrityResult({ passed: false, score: 0, differences: [] });
     } finally {
       setIsCheckingIntegrity(false);
     }
@@ -696,6 +707,12 @@ export default function LogEvent(): JSX.Element {
                         const file = (e.target as HTMLInputElement).files?.[0];
                         if (file) {
                           setUploadedImageFile(file);
+                          // Create preview
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            setUploadedImagePreview(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
                           // Don't upload to IPFS yet, wait for integrity check
                           toast({ 
                             title: "Image Selected", 
@@ -725,7 +742,7 @@ export default function LogEvent(): JSX.Element {
                 {/* Integrity Check Section */}
                 {uploadedImageFile && selectedBatch && (
                   <div className="mt-4 p-4 border rounded-lg bg-muted/50">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between mb-4">
                       <div>
                         <h4 className="font-semibold text-sm">Integrity Check Required</h4>
                         <p className="text-xs text-muted-foreground">
@@ -756,14 +773,61 @@ export default function LogEvent(): JSX.Element {
                       </Button>
                     </div>
                     
+                    {/* Side-by-side Image Comparison */}
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      {/* Baseline Image */}
+                      <div>
+                        <h5 className="text-sm font-medium mb-2 flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          Baseline Image
+                        </h5>
+                        <div className="aspect-square bg-secondary/20 rounded-lg border-2 border-dashed border-green-500/30 flex items-center justify-center overflow-hidden">
+                          {selectedBatch.baselineImage ? (
+                            <img
+                              src={selectedBatch.baselineImage}
+                              alt="Baseline"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="text-center p-4">
+                              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                              <p className="text-xs text-muted-foreground">No baseline image</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Uploaded Image */}
+                      <div>
+                        <h5 className="text-sm font-medium mb-2 flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-orange-500" />
+                          Uploaded Image
+                        </h5>
+                        <div className="aspect-square bg-secondary/20 rounded-lg border-2 border-dashed border-orange-500/30 flex items-center justify-center overflow-hidden">
+                          {uploadedImagePreview ? (
+                            <img
+                              src={uploadedImagePreview}
+                              alt="Uploaded"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="text-center p-4">
+                              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                              <p className="text-xs text-muted-foreground">No image selected</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
                     {/* Integrity Result */}
                     {integrityResult && (
-                      <div className={`p-3 rounded-lg border ${
+                      <div className={`p-4 rounded-lg border ${
                         integrityResult.passed 
                           ? 'bg-green-50 border-green-200' 
                           : 'bg-red-50 border-red-200'
                       }`}>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 mb-3">
                           {integrityResult.passed ? (
                             <CheckCircle2 className="h-5 w-5 text-green-600" />
                           ) : (
@@ -783,6 +847,30 @@ export default function LogEvent(): JSX.Element {
                           )}
                         </div>
                         
+                        {/* Differences List */}
+                        {integrityResult.differences && integrityResult.differences.length > 0 && (
+                          <div className="mb-3">
+                            <h6 className="text-sm font-medium mb-2">Detected Differences ({integrityResult.differences.length}):</h6>
+                            <div className="space-y-2 max-h-32 overflow-y-auto">
+                              {integrityResult.differences.map((diff: any, idx: number) => (
+                                <div
+                                  key={idx}
+                                  className={`p-2 rounded text-xs ${
+                                    diff.severity === "high"
+                                      ? "bg-red-100 border-l-2 border-red-500"
+                                      : diff.severity === "medium"
+                                      ? "bg-orange-100 border-l-2 border-orange-500"
+                                      : "bg-yellow-100 border-l-2 border-yellow-500"
+                                  }`}
+                                >
+                                  <div className="font-medium">{diff.location}</div>
+                                  <div className="text-muted-foreground">{diff.description}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
                         {integrityResult.passed && (
                           <Button
                             onClick={async () => {
@@ -791,6 +879,7 @@ export default function LogEvent(): JSX.Element {
                                   const url = await handlePinataUpload(uploadedImageFile);
                                   setImage(url);
                                   setUploadedImageFile(null);
+                                  setUploadedImagePreview(null);
                                   setIntegrityResult(null);
                                   toast({ 
                                     title: "Upload Success", 
@@ -806,7 +895,7 @@ export default function LogEvent(): JSX.Element {
                               }
                             }}
                             size="sm"
-                            className="mt-2 gap-2"
+                            className="gap-2"
                           >
                             <Upload className="h-4 w-4" />
                             Upload to IPFS
