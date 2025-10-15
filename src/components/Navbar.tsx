@@ -5,6 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Logo } from '@/components/Logo';
 
 export const Navbar = () => {
   const { theme, toggleTheme } = useTheme();
@@ -24,8 +25,11 @@ export const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">
-            Boxity
+          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <Logo size="md" className="text-primary" />
+            <span className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">
+              Boxity
+            </span>
           </Link>
 
           {/* Desktop Navigation */}

@@ -89,7 +89,7 @@ export default function LogEvent(): JSX.Element {
   const [isLogging, setIsLogging] = useState<boolean>(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isCheckingIntegrity, setIsCheckingIntegrity] = useState(false);
-  const [integrityResult, setIntegrityResult] = useState<{passed: boolean, score?: number, differences?: any[]} | null>(null);
+  const [integrityResult, setIntegrityResult] = useState<{passed: boolean, tisScore?: number, differences?: any[], trustScore?: any} | null>(null);
   const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null);
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
 
@@ -160,21 +160,29 @@ export default function LogEvent(): JSX.Element {
           description: d?.description || "",
         }));
         
-        // Allow upload if 9 or fewer differences found (as requested)
-        const passed = mapped.length <= 2;
-        const score = passed ? Math.max(70, 100 - (mapped.length * 3)) : Math.max(0, 100 - (mapped.length * 10));
+        // Extract TIS score from backend response
+        const tisScore = data.aggregate_tis || 100;
+        const trustScoreData = {
+          aggregate_tis: tisScore,
+          overall_assessment: data.overall_assessment || "SAFE",
+          confidence_overall: data.confidence_overall || 0.8,
+          notes: data.notes || "Analysis completed",
+        };
         
-        setIntegrityResult({ passed, score, differences: mapped });
+        // Allow upload if TIS score is 40 or above
+        const passed = tisScore >= 40;
+        
+        setIntegrityResult({ passed, tisScore, differences: mapped, trustScore: trustScoreData });
         
         if (passed) {
           toast({
             title: "Integrity Check Passed",
-            description: `Found ${mapped.length} differences (≤9 allowed). Score: ${score}%`,
+            description: `TIS Score: ${tisScore}% (≥40 required). Found ${mapped.length} differences.`,
           });
         } else {
           toast({
             title: "Integrity Check Failed",
-            description: `Found ${mapped.length} differences (>9 not allowed)`,
+            description: `TIS Score: ${tisScore}% (<40 required). Upload blocked.`,
             variant: "destructive",
           });
         }
@@ -188,7 +196,7 @@ export default function LogEvent(): JSX.Element {
         description: "Failed to perform integrity check",
         variant: "destructive",
       });
-      setIntegrityResult({ passed: false, score: 0, differences: [] });
+      setIntegrityResult({ passed: false, tisScore: 0, differences: [], trustScore: null });
     } finally {
       setIsCheckingIntegrity(false);
     }
@@ -827,24 +835,101 @@ export default function LogEvent(): JSX.Element {
                           ? 'bg-green-50 border-green-200' 
                           : 'bg-red-50 border-red-200'
                       }`}>
-                        <div className="flex items-center gap-2 mb-3">
-                          {integrityResult.passed ? (
-                            <CheckCircle2 className="h-5 w-5 text-green-600" />
-                          ) : (
-                            <AlertTriangle className="h-5 w-5 text-red-600" />
-                          )}
-                          <span className={`font-semibold ${
-                            integrityResult.passed ? 'text-green-800' : 'text-red-800'
-                          }`}>
-                            {integrityResult.passed ? 'Integrity Check Passed' : 'Integrity Check Failed'}
-                          </span>
-                          {integrityResult.score && (
-                            <span className={`text-sm ${
-                              integrityResult.passed ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              ({integrityResult.score}%)
-                            </span>
-                          )}
+                        <div className="text-center mb-4">
+                          <h4 className="text-lg font-bold mb-3 flex items-center justify-center gap-2">
+                            <CheckCircle2 className="w-5 h-5" />
+                            Trust Identity Score
+                          </h4>
+
+                          {/* TIS Score Circle */}
+                          <div className="relative inline-block mb-4">
+                            <div className="w-20 h-20 rounded-full border-4 border-secondary/20 flex items-center justify-center">
+                              <svg
+                                className="w-20 h-20 absolute inset-0 transform -rotate-90"
+                                viewBox="0 0 100 100"
+                              >
+                                <circle
+                                  cx="50"
+                                  cy="50"
+                                  r="40"
+                                  stroke="currentColor"
+                                  strokeWidth="6"
+                                  fill="none"
+                                  className="text-secondary/20"
+                                />
+                                <circle
+                                  cx="50"
+                                  cy="50"
+                                  r="40"
+                                  stroke="currentColor"
+                                  strokeWidth="6"
+                                  fill="none"
+                                  strokeDasharray={`${2 * Math.PI * 40}`}
+                                  strokeDashoffset={`${
+                                    2 *
+                                    Math.PI *
+                                    40 *
+                                    (1 - (integrityResult.tisScore || 0) / 100)
+                                  }`}
+                                  className={
+                                    (integrityResult.tisScore || 0) >= 80
+                                      ? "text-green-500"
+                                      : (integrityResult.tisScore || 0) >= 40
+                                      ? "text-orange-500"
+                                      : "text-red-500"
+                                  }
+                                  strokeLinecap="round"
+                                />
+                              </svg>
+                              <div
+                                className={`w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold ${
+                                  (integrityResult.tisScore || 0) >= 80
+                                    ? "bg-green-500/20 text-green-400 border-2 border-green-500/30"
+                                    : (integrityResult.tisScore || 0) >= 40
+                                    ? "bg-orange-500/20 text-orange-400 border-2 border-orange-500/30"
+                                    : "bg-red-500/20 text-red-400 border-2 border-red-500/30"
+                                }`}
+                              >
+                                {integrityResult.tisScore || 0}%
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Risk Assessment */}
+                          <div className="space-y-2">
+                            <div
+                              className={`inline-flex items-center px-3 py-2 rounded-full text-sm font-medium ${
+                                (integrityResult.tisScore || 0) >= 80
+                                  ? "bg-green-500/20 text-green-300 border border-green-500/30"
+                                  : (integrityResult.tisScore || 0) >= 40
+                                  ? "bg-orange-500/20 text-orange-300 border border-orange-500/30"
+                                  : "bg-red-500/20 text-red-300 border border-red-500/30"
+                              }`}
+                            >
+                              {(integrityResult.tisScore || 0) >= 80 ? (
+                                <>
+                                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                                  SAFE - Product integrity maintained
+                                </>
+                              ) : (integrityResult.tisScore || 0) >= 40 ? (
+                                <>
+                                  <AlertTriangle className="w-4 h-4 mr-2" />
+                                  MODERATE RISK - Review required
+                                </>
+                              ) : (
+                                <>
+                                  <AlertTriangle className="w-4 h-4 mr-2" />
+                                  HIGH RISK - Upload blocked
+                                </>
+                              )}
+                            </div>
+
+                            {integrityResult.trustScore?.notes && (
+                              <p className="text-xs text-muted-foreground italic">
+                                {integrityResult.trustScore.notes}
+                              </p>
+                            )}
+                          </div>
                         </div>
                         
                         {/* Differences List */}
@@ -936,7 +1021,7 @@ export default function LogEvent(): JSX.Element {
                   ) : uploadedImageFile && !integrityResult?.passed ? (
                     <>
                       <ShieldCheck className="mr-2 h-4 w-4" />
-                      Complete Integrity Check First
+                      TIS Score Too Low (Need ≥40%)
                     </>
                   ) : (
                     isContractBatch ? 'Log Event to Blockchain' : 'Log Event'
