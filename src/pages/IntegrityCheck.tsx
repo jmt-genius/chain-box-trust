@@ -474,11 +474,6 @@ export default function IntegrityCheck() {
                       )}
                     </div>
 
-                    <p className="text-sm text-muted-foreground">
-                      Confidence:{" "}
-                      {Math.round(trustScore.confidence_overall * 100)}%
-                    </p>
-
                     {trustScore.notes && (
                       <p className="text-sm text-muted-foreground italic">
                         {trustScore.notes}
