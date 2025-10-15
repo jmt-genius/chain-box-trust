@@ -14,7 +14,7 @@ import { loadBatches, saveBatches, type Batch as DemoBatch } from '@/lib/demoDat
 import { web3Service, type Batch as ContractBatch } from '@/lib/web3';
 import ClickSpark from '@/components/ClickSpark';
 import QRCode from 'qrcode';
-import { Download, Loader2, Upload } from 'lucide-react';
+import { Download, Loader2, Upload, QrCode } from 'lucide-react';
 
 const Admin = () => {
   const { toast } = useToast();
@@ -328,26 +328,40 @@ const handlePinataUpload = async (file: File): Promise<string> => {
           </CardContent>
         </Card>
 
-        {/* Demo Batches Info */}
+        {/* Demo Walkthrough */}
         <Card>
           <CardHeader>
-            <CardTitle>Demo Batches Available</CardTitle>
-            <CardDescription>Pre-loaded batches for testing</CardDescription>
+            <CardTitle>Demo Walkthrough</CardTitle>
+            <CardDescription>
+              Quick steps to create a batch
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="font-semibold">CHT-001-ABC</p>
-                <p className="text-sm text-muted-foreground">VitaTabs 10mg (2 events)</p>
-              </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="font-semibold">CHT-002-XYZ</p>
-                <p className="text-sm text-muted-foreground">ColdVax (1 event)</p>
-              </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="font-semibold">CHT-DEMO</p>
-                <p className="text-sm text-muted-foreground">Generic Demo Product (2 events)</p>
-              </div>
+          <CardContent className="space-y-3">
+            <div className="p-3 bg-muted rounded-lg">
+              <h3 className="font-semibold flex items-center gap-2">
+                <QrCode className="h-4 w-4" />
+                Step 1: Enter product name
+              </h3>
+              <p className="text-sm text-muted-foreground">Example: VitaTabs 10mg</p>
+            </div>
+
+            <div className="p-3 bg-muted rounded-lg">
+              <h3 className="font-semibold">Step 2: Add SKU (optional)</h3>
+              <p className="text-sm text-muted-foreground">Helps with inventory, e.g., VT-10MG-001</p>
+            </div>
+
+            <div className="p-3 bg-muted rounded-lg">
+              <h3 className="font-semibold">Step 3: Generate or enter batch ID</h3>
+              <p className="text-sm text-muted-foreground">Use Generate, e.g., CHT-123-ABC</p>
+            </div>
+
+            <div className="p-3 bg-muted rounded-lg">
+              <h3 className="font-semibold">Step 4: Add baseline image</h3>
+              <p className="text-sm text-muted-foreground">Upload or paste URL (IPFS supported)</p>
+            </div>
+
+            <div className="p-3 bg-primary/10 border border-primary rounded-lg">
+              <p className="text-sm font-medium">Click "Create Batch on Blockchain" to register and get a QR.</p>
             </div>
           </CardContent>
         </Card>
